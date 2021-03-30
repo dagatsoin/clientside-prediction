@@ -1,0 +1,43 @@
+{
+  "name": "clientside-prediction",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.html",
+  "scripts": {
+    "start": "parcel index.html --open",
+    "build": "parcel build index.html",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@types/react": "17.0.3",
+    "@types/react-dom": "17.0.1",
+    "ip": "1.1.5",
+    "mobx": "6.1.8",
+    "mobx-react-lite": "3.2.0",
+    "mobx-utils": "6.0.3",
+    "parcel-bundler": "^1.6.1",
+    "popmotion": "9.3.4",
+    "react": "17.0.1",
+    "react-dom": "17.0.1",
+    "typescript": "4.2.3"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.22",
+    "jest": "^26.6.3",
+    "ts-jest": "^26.5.4"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "moduleFileExtensions": [
+      "js",
+      "ts"
+    ],
+    "testMatch": [
+      "<rootDir>/src/**/*.(test|spec).ts"
+    ]
+  },
+  "resolutions": {
+    "@babel/preset-env": "7.13.8"
+  },
+  "keywords": []
+}
