@@ -4,17 +4,22 @@ import { render } from "react-dom";
 import { init } from "./client";
 import { IClient } from "./client/types";
 import { Game } from "./Game";
-import { Mode } from "./server";
+import { createServerConnector, Mode } from "./server";
 
 async function deployAndRun(names: string[], mode: Mode): Promise<IClient[]> {
   if (!names.length) return [];
+  // Create server
+  const serverSlot = createServerConnector()
+
+  // Create players
   const players: IClient[] = [];
-  const firstPlayer = await init(names[0], undefined, mode);
-  players.push(firstPlayer.client);
-  // Create other players
-  for (const name of names.slice(1)) {
-    players.push((await init(name, firstPlayer.serverSlot)).client);
+  for (const name of names) {
+    players.push((await init(name, serverSlot)).client);
   }
+  
+  // Connect clients
+  players.forEach(player => player.dispatch({type: "addPlayer", payload: { playerId: player.state.playerId }}))
+
   return players;
 }
 

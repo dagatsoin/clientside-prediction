@@ -58,7 +58,7 @@ class Entity implements IEntity, ISerializable<SerializedEntity> {
   }
 }
 
-function isAddEntityCmd(command: JSONCommand): command is AddEntity {
+export function isAddEntityCmd(command: JSONCommand): command is AddEntity {
   return (
     command.op === JSONOperation.add &&
     /^\/entities\/[A-Za-z0-9]+$/.test(command.path)
@@ -113,9 +113,9 @@ export class Model implements IModel<World, SerializedWorld> {
     });
   }
 
-  public present = (proposal: Proposal, shouldRegisterStep = true) => {
+  public present = ({ mutations, shouldRegisterStep = true }: Proposal) => {
     this._patch = [];
-    for (let mutation of proposal) {
+    for (let mutation of mutations) {
       switch (mutation.type) {
         case BasicMutationType.incBy:
           const value = increment(

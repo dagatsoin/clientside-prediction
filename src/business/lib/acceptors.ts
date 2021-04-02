@@ -61,7 +61,12 @@ export function applyJSONCommand(
       if (parent instanceof Map || isObservableMap(parent)) {
         parent.set(childKey, command.value);
       } else if (isSerializedMap(parent)) {
-        parent.value.find(([id]) => id === childKey)
+        const index = parent.value.findIndex(([id]) => id === childKey)
+        if (index > -1) {
+          parent.value[index] = [childKey, command.value]
+        } else {
+          parent.value.push([childKey, command.value])
+        }
       } else if (Array.isArray(parent) || isObservableArray(parent)) {
         parent[Number(childKey)] = command.value;
       } else {

@@ -3,24 +3,33 @@ import {
   JSONCommand,
   JSONOperation
 } from "./business/lib/types";
-import { World, Proposal, SerializedEntity } from "./business/types";
+import { World, Proposal, SerializedEntity, Patch } from "./business/types";
 
-const applyPatch = (patch: JSONCommand[]): Proposal =>
-  patch.map((command) => ({
+const applyPatch = ({patch}: {patch: JSONCommand[]}): Proposal => ({
+  mutations: patch.map((command) => ({
     type: BasicMutationType.jsonCommand,
     payload: command
-  }));
+  }))
+})
 
-const addPlayer = (snapshot: SerializedEntity): Proposal => [
-  {
-    type: BasicMutationType.jsonCommand,
-    payload: {
-      op: JSONOperation.push,
-      path: "/entities",
-      value: snapshot
+const addPlayer = ({ playerId }: { playerId: string }): Proposal => ({
+  mutations: [
+    {
+      type: BasicMutationType.jsonCommand,
+      payload: {
+        op: JSONOperation.add,
+        path: `/entities/${playerId}`,
+        value: {
+          id: playerId,
+          name: playerId,
+          transform: {
+            position: { animation: {}, initial: { x: 0, y: 0 } }
+          }
+        } as SerializedEntity
+      }
     }
-  }
-];
+  ]
+})
 
 const hydrate = ({
   snapshot,
@@ -28,26 +37,33 @@ const hydrate = ({
 }: {
   snapshot: World;
   shouldRegisterStep?: boolean;
-}): Proposal => [
-  {
-    type: BasicMutationType.jsonCommand,
-    payload: { op: JSONOperation.replace, value: snapshot, path: "/" }
-  }
-];
+}): Proposal => ({
+  shouldRegisterStep,
+  mutations: [
+    {
+      type: BasicMutationType.jsonCommand,
+      payload: { op: JSONOperation.replace, value: snapshot, path: "/" }
+    }
+  ]
+});
 
-const moveRight = ({ playerId }: { playerId: string }): Proposal => [
-  {
-    type: BasicMutationType.incBy,
-    payload: { path: `/entities/${playerId}/x`, amount: 1 }
-  }
-];
+const moveRight = ({ playerId }: { playerId: string }): Proposal => ({
+  mutations: [
+    {
+      type: BasicMutationType.incBy,
+      payload: { path: `/entities/${playerId}/x`, amount: 1 }
+    }
+  ]
+});
 
-const moveLeft = ({ playerId }: { playerId: string }): Proposal => [
-  {
-    type: BasicMutationType.decBy,
-    payload: { path: `/entities/${playerId}/x`, amount: 1 }
-  }
-];
+const moveLeft = ({ playerId }: { playerId: string }): Proposal => ({
+  mutations: [
+    {
+      type: BasicMutationType.decBy,
+      payload: { path: `/entities/${playerId}/x`, amount: 1 }
+    }
+  ]
+});
 
 const translateRight = ({
   playerId,
@@ -55,21 +71,23 @@ const translateRight = ({
 }: {
   playerId: string;
   delta: number;
-}): Proposal => [
-  {
-    type: BasicMutationType.jsonCommand,
-    payload: {
-      op: JSONOperation.replace,
-      path: `entities/${playerId}/transform/position/animation/x`,
-      value: {
-        startedAt: Date.now(),
-        bezier: [0, 0, 1, 1],
-        duration: 100,
-        delta
+}): Proposal => ({
+  mutations: [
+    {
+      type: BasicMutationType.jsonCommand,
+      payload: {
+        op: JSONOperation.replace,
+        path: `entities/${playerId}/transform/position/animation/x`,
+        value: {
+          startedAt: Date.now(),
+          bezier: [0, 0, 1, 1],
+          duration: 100,
+          delta
+        }
       }
     }
-  }
-];
+  ]
+});
 
 export const actions = {
   applyPatch,
@@ -82,8 +100,10 @@ export const actions = {
 
 export type Intent =
   | {
-      type: "applyPatch";
-      payload: JSONCommand[];
+      type: "applyPatch"
+      payload: {
+        patch: Patch
+      }
     }
   | {
       type: "hydrate";

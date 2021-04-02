@@ -1,7 +1,7 @@
 import { BasicMutationType, JSONOperation } from "../business/lib/types";
 import { createModel } from "../business/model";
 import { SerializedWorld } from "../business/types";
-import { createStateComputation } from "../state";
+import { createClientRepresentation } from "../state/client";
 import { actions } from "../actions";
 
 const playerId = "fraktar";
@@ -24,19 +24,21 @@ const snapshot: SerializedWorld = {
   }
 };
 const model = createModel(playerId, snapshot);
-const state = createStateComputation(model, 0);
+const state = createClientRepresentation(model);
 const { player } = state;
 it("should instantaly move to left", function () {
-  model.present([
-    {
-      type: BasicMutationType.jsonCommand,
-      payload: {
-        op: JSONOperation.replace,
-        path: "entities/fraktar/transform/position/initial/x",
-        value: 10
+  model.present({
+    mutations: [
+      {
+        type: BasicMutationType.jsonCommand,
+        payload: {
+          op: JSONOperation.replace,
+          path: "entities/fraktar/transform/position/initial/x",
+          value: 10
+        }
       }
-    }
-  ]);
+    ]
+  });
   expect(player.position.x).toBe(10);
   expect(state.step).toBe(1);
 });

@@ -10,7 +10,7 @@ function replacer(_: any, value: any) {
 }
 
 function reviver(_: any, value: any) {
-  if("dataType" in value) {
+  if (typeof value === "object" && "dataType" in value) {
     if (value.dataType === 'Map') {
       return new Map(value.value);
     }

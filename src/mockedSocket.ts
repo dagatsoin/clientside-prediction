@@ -1,0 +1,68 @@
+import { Intent } from './actions';
+import { parse, stringify } from './business/lib/JSON';
+
+export const nodes: Map<string, {latence: number, cb: (message: MessageEvent<any>) => void}> = new Map()
+
+export type ISocket = Pick<WebSocket, "send" | "onclose" | "onerror" | "onmessage" | "onopen">
+
+export function getLatenceOf(id: string) {
+  return nodes.get(id)?.latence
+}
+
+export function disconnectAll() {
+  nodes.clear()
+}
+
+class Socket implements ISocket {
+  private queue: string[] = []
+  private get latence() {
+    return nodes.get(this.id)!.latence
+  }
+  
+  constructor(private id: string) {
+    const latence = id === "server" ? 0 :Math.floor(Math.random() * 500)
+    nodes.set(id, {latence, cb: this.onmessage})
+    setTimeout(this.onopen, this.latence)
+  }
+  onclose = (ev: CloseEvent) => {
+    nodes.delete(this.id)
+  }
+  onerror = (ev: Event) => {console.warn("Call empty onerror on mocked websocket", this.id)};
+  get onmessage() {
+    return (message: MessageEvent<any>) => {console.warn("Call empty onmessage on mocked websocket", this.id)};
+  }
+  set onmessage(handler: (message: MessageEvent<any>) => void) {
+    nodes.get(this.id)!.cb = handler
+  }
+  onopen = (ev: Event) => {console.warn("Call empty onopen on mocked websocket", this.id)};
+  
+  /**
+   * Send data to server or, if the server is the sender, broadcast to all clients.
+   */
+  send = (data: string | ArrayBufferLike | Blob | ArrayBufferView): void => {
+    if (this.id === "server") {
+      nodes.forEach(({cb}) => cb(new MessageEvent('message', {data})))
+    } else {
+      this.queue.push(data as string)  
+      setTimeout(() => {
+        const nextStep = this.queue.shift()!;
+        nodes.get("server")!.cb(new MessageEvent('message', {data: nextStep}))
+      }, this.latence);
+    }
+  }
+}
+
+export function createSocket(clientId: string, latence?: number): ISocket {
+  return new Socket(clientId)
+}
+
+function toInput(data: string): {
+  nodeId: string;
+  clientStep: number;
+} & Intent {
+  return parse(data)
+}
+
+function toMessage(input: {nodeId: string, clientStep: number} & Intent): MessageEvent<string> {
+  return new MessageEvent("message", {data: stringify(input)})
+}

@@ -1,11 +1,9 @@
 import { createModel } from "../business/model";
 import { createDispatcher } from "./dispatcher";
-import { createStateComputation } from "../state";
-import { createServer, Mode } from "../server";
+import { createClientRepresentation } from "../state/client";
 import { Dispatcher, IClient } from "./types";
 import { IRepresentation } from "../state/types";
-import { IServerAPI } from "../server/IServerAPI";
-import { SerializedWorld, World } from "../business/types";
+import { createSocket, ISocket } from '../mockedSocket';
 
 class Client implements IClient {
   get state(): IRepresentation {
@@ -15,42 +13,37 @@ class Client implements IClient {
     return this._dispatch;
   }
 
+  async connect() {
+    this._dispatch({
+      type: "addPlayer",
+      payload: { playerId: this.playerId }
+    })
+  }
   private _state: IRepresentation;
   private _dispatch: Dispatcher;
+  private socket: ISocket
 
   constructor(
-    snapshot: SerializedWorld,
-    playerId: string,
-    initialStep: number,
-    serverSlot: IServerAPI<World, SerializedWorld>
+    private readonly playerId: string,
+    
   ) {
-    const model = createModel(playerId, snapshot);
-    this._state = createStateComputation(model, initialStep);
+    const model = createModel(playerId);
+    this._state = createClientRepresentation(model);
+    this.socket = createSocket(this.playerId)
 
     const { dispatch, onMessage } = createDispatcher(
       playerId,
       model,
       this.state,
-      serverSlot.send
+      this.socket.send
     );
+    this.socket.onmessage = onMessage
     this._dispatch = dispatch;
-    serverSlot.addListener(onMessage);
   }
 }
 
 export async function init(
-  playerID: string,
-  serverSlot?: IServerAPI<World, SerializedWorld>,
-  mode: Mode = "offline"
-): Promise<{
-  client: IClient;
-  serverSlot: IServerAPI<World, SerializedWorld>;
-}> {
-  const _serverSlot = serverSlot || createServer(mode);
-  const { snapshot, step } = await _serverSlot.connect(playerID);
-
-  return {
-    client: new Client(snapshot, playerID, step, _serverSlot),
-    serverSlot: _serverSlot
-  }
+  playerID: string
+): Promise<IClient> {
+  return new Client(playerID)
 }

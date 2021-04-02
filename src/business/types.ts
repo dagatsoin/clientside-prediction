@@ -78,6 +78,9 @@ export type Present = (
   shouldRegisterStep?: boolean
 ) => void;
 
-export type Proposal = Mutations;
+export type Proposal = {
+  shouldRegisterStep?: boolean
+  mutations: Mutations
+};
 
 export type Patch = JSONCommand[];

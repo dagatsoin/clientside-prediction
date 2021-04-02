@@ -1,4 +1,4 @@
-import { Position, SerializedWorld } from "../business/types";
+import { Patch, Position, SerializedWorld } from "../business/types";
 import { ITimeTravel } from "../timeTravel/types";
 
 export interface IRepresentation {
@@ -9,8 +9,21 @@ export interface IRepresentation {
   readonly timeTravel: ITimeTravel<SerializedWorld>;
 }
 
+export interface IServerRepresentation {
+  readonly step: number;
+  readonly snapshot: SerializedWorld;
+  readonly players: IPlayer[];
+  readonly patch: Patch;
+  readonly timeTravel: ITimeTravel<SerializedWorld>;
+}
+
 export interface IPlayer {
   id: string;
   name: string;
   position: Position;
+}
+
+export type StepPatch = {
+  step: number
+  patch: Patch
 }

@@ -1,47 +1,95 @@
 import { init } from "./client";
 import { IClient } from "./client/types";
+import { disconnectAll, getLatenceOf } from './mockedSocket';
+import { createServer } from './server';
 
-let client0!: IClient;
-let client1!: IClient;
 
 async function startInfra(clientNb: number) {
   const players: IClient[] = [];
-  const { serverSlot, client } = await init("Player0", undefined, "offline");
-  client0 = client;
-  players.push(client0);
 
-  // Create other players
+  // Create server
+  const server = createServer()
+  
+  // Create players
   for (let i = 0; i < clientNb; i++) {
-    const player = (await init(`Player${i}`, serverSlot)).client;
-    if (i === 1) {
-      client1 = player;
-    }
-    players.push(player);
+    players.push((await init(`Player${i}`)));
   }
+  
+  // Connect clients
+  players.forEach(player => player.dispatch({type: "addPlayer", payload: { playerId: player.state.playerId }}))
+
+  return { server, players };
 }
 
-beforeAll(async (done) => {
-  await startInfra(0);
-  done();
-});
+describe("Player connection", function() {
+  let players: IClient[] = [];
 
+  beforeAll(async (done) => {
+    players = (await startInfra(1)).players;
+    done();
+  });
+
+  afterAll(function() {
+    disconnectAll()
+  })
+
+  test("Player is hydrated after connexion", function(done) {
+    setTimeout(function(){
+      expect(players[0].state.players.length).toBe(1)
+      done()
+    }, getLatenceOf(players[0].state.playerId))
+  })
+})
+ 
+
+describe("Broadcast a player action to other players", function() {
+  let players: IClient[] = [];
+  let latence: number = 0
+
+  beforeAll(async (done) => {
+    players = (await startInfra(3)).players;
+    done();
+    latence = Math.max(
+      ...players.map(({state: {playerId}}) => getLatenceOf(playerId)!)
+    )
+  });
+
+  afterAll(function() {
+    disconnectAll()
+  })
+
+  test("All players know each others", function(done) {
+    
+    setTimeout(function(){
+      expect(players[0].state.players.length).toBe(3)
+      expect(players[1].state.players.length).toBe(3)
+      expect(players[2].state.players.length).toBe(3)
+      done()
+    }, latence)
+  })
+/* 
+  test("Players are sync with the server", function() {
+
+  }) */
+})
+/*
 describe("Move animation without interruption", function () {
   test("P0 - Step 0: Player0 should be at 0", function () {
-    expect(client0.state.player.position.x).toBe(0)
+    expect(players[0].state.player.position.x).toBe(0)
   });
   test("P0 - Step 1: should start translating to left", function (done) {
-    client0.dispatch({
+    players[0].dispatch({
       type: "translateRight",
       payload: {
-        playerId: client0.state.playerId,
+        playerId: players[0].state.playerId,
         delta: 10
       }
     });
     setTimeout(function () {
       try {
-        expect(client0.state.step).toBe(2);
+        expect(players[0].state.step).toBe(2);
         expect(
-          client0.state.timeTravel.at(2).snapshot.entities.value[0][1].transform
+          players[0].state.timeTravel.at(2).snapshot.entities.value[0][1].transform
             .position.animation.x
         ).toBeUndefined();
         done();
@@ -80,3 +128,4 @@ describe("Move animation with interruption from another player", function () {
   test.todo("P1 - Step 2: P0 should be dead");
   test.todo("P1 - Step 2: timeline root should be now set at Step 2");
 });
+ */
