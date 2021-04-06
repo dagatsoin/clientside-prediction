@@ -1,6 +1,6 @@
 import { Patch } from "../business/types";
 
-export type OpLog<T> = [{ snapshot: T; step: number }, ...Patch];
+export type OpLog<T> = [{ snapshot: T; step: number }, ...Patch[]];
 
 export interface ITimeTravel<T> {
   /**
@@ -8,10 +8,10 @@ export interface ITimeTravel<T> {
    */
   checkoutBranch(newBranch: any): void;
   /**
-   * Return a deep copy of the current branch from clienStep to end
+   * Create a branch from the given client step
    * @param clientStep
    */
-  copyBranchFrom(clientStep: number): Patch[];
+  createBranch(name: string, clientStep: number): Patch[];
   /**
    * Return the current step number
    */
@@ -25,14 +25,11 @@ export interface ITimeTravel<T> {
    */
   getInitalSnapshot(): T;
   /**
-   * Fast forward to the gieven step and return the result
+   * Return the snapshot at the given step
    */
   at(
     step: number
-  ): {
-    snapshot: T;
-    step: number;
-  };
+  ): T
   /**
    * Add a new step
    */
@@ -42,9 +39,9 @@ export interface ITimeTravel<T> {
    */
   get(step: number): Patch | { snapshot: T; step: number };
   /**
-   * Reset the timeline and keep the first element
+   * Clear the timeline and keep the first element
    */
-  reset(): void;
+  reset(initialState?: {step: number, snapshot: T}): void;
   /**
    * Rebase the root to the given step.
    * All the previous step will be lost.
