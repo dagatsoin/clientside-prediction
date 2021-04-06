@@ -1,6 +1,10 @@
 import { Patch } from "../business/types";
 
-export type OpLog<T> = [{ snapshot: T; step: number }, ...Patch[]];
+export type OpLog = Patch[];
+export type Branch = {
+  base: number
+  opLog: OpLog
+}
 
 export interface ITimeTravel<T> {
   /**
@@ -11,7 +15,7 @@ export interface ITimeTravel<T> {
    * Create a branch from the given client step
    * @param clientStep
    */
-  createBranch(name: string, clientStep: number): Patch[];
+  createBranch(name: string, clientStep: number): Branch;
   /**
    * Return the current step number
    */
@@ -39,7 +43,8 @@ export interface ITimeTravel<T> {
    */
   get(step: number): Patch | { snapshot: T; step: number };
   /**
-   * Clear the timeline and keep the first element
+   * Clear the timeline and keep the first element.
+   * Replace the initial snapshot and step if given.
    */
   reset(initialState?: {step: number, snapshot: T}): void;
   /**

@@ -1,7 +1,8 @@
+import { stringify } from './business/lib/JSON';
 import { init } from "./client";
 import { IClient } from "./client/types";
-import { disconnectAll, getLatenceOf } from './mockedSocket';
-import { createServer } from './server';
+import { disconnectAll, getLatenceOf, nodes } from './mockedSocket';
+import { createServer, IServer } from './server';
 
 
 async function startInfra(clientNb: number) {
@@ -14,14 +15,16 @@ async function startInfra(clientNb: number) {
   for (let i = 0; i < clientNb; i++) {
     players.push((await init(`Player${i}`)));
   }
-  
+
   // Connect clients
-  players.forEach(player => player.dispatch({type: "addPlayer", payload: { playerId: player.state.playerId }}))
+  players.forEach(player => {
+    player.dispatch({type: "addPlayer", payload: { playerId: player.state.playerId }})
+  })
 
   return { server, players };
 }
 
-describe("Player connection", function() {
+describe("Server sends a sync command", function() {
   let players: IClient[] = [];
 
   beforeAll(async (done) => {
@@ -36,18 +39,27 @@ describe("Player connection", function() {
   test("Player is hydrated after connexion", function(done) {
     setTimeout(function(){
       expect(players[0].state.players.length).toBe(1)
+      expect(players[0].state.step).toBe(1)
       done()
     }, getLatenceOf(players[0].state.playerId))
   })
 })
+
+/* 
+describe("Server sends a patch", function() {
+  
+})
  
 
-describe("Broadcast a player action to other players", function() {
+describe("Create a room", function() {
   let players: IClient[] = [];
+  let server: IServer<any>
   let latence: number = 0
 
   beforeAll(async (done) => {
-    players = (await startInfra(3)).players;
+    const infra = (await startInfra(3));
+    server = infra.server
+    players = infra.players
     done();
     latence = Math.max(
       ...players.map(({state: {playerId}}) => getLatenceOf(playerId)!)
@@ -67,13 +79,34 @@ describe("Broadcast a player action to other players", function() {
       done()
     }, latence)
   })
-/* 
-  test("Players are sync with the server", function() {
 
-  }) */
+  test("Players are sync with the server", function() {
+    expect(server.state.step).toBe(3)
+    expect(players[0].state.players.length).toBe(3)
+    expect(players[1].state.players.length).toBe(3)
+    expect(players[2].state.players.length).toBe(3)
+  })
 })
-/*
+
 describe("Move animation without interruption", function () {
+  let players: IClient[] = [];
+  let server: IServer<any>
+  let latence: number = 0
+
+  beforeAll(async (done) => {
+    const infra = (await startInfra(3));
+    server = infra.server
+    players = infra.players
+    done();
+    latence = Math.max(
+      ...players.map(({state: {playerId}}) => getLatenceOf(playerId)!)
+    )
+  });
+
+  afterAll(function() {
+    disconnectAll()
+  })
+  
   test("P0 - Step 0: Player0 should be at 0", function () {
     expect(players[0].state.player.position.x).toBe(0)
   });
@@ -127,5 +160,4 @@ describe("Move animation with interruption from another player", function () {
   test.todo("P1 - Step 2: P0 should stop translate");
   test.todo("P1 - Step 2: P0 should be dead");
   test.todo("P1 - Step 2: timeline root should be now set at Step 2");
-});
- */
+}); */

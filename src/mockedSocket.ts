@@ -1,7 +1,4 @@
-import { Intent } from './actions';
-import { parse, stringify } from './business/lib/JSON';
-
-export const nodes: Map<string, {latence: number, cb: (message: MessageEvent<any>) => void}> = new Map()
+export const nodes: Map<string, {latence: number, cb: (message: MessageEvent<string>) => void}> = new Map()
 
 export type ISocket = Pick<WebSocket, "send" | "onclose" | "onerror" | "onmessage" | "onopen">
 
@@ -22,7 +19,9 @@ class Socket implements ISocket {
   constructor(private id: string) {
     const latence = id === "server" ? 0 :Math.floor(Math.random() * 500)
     nodes.set(id, {latence, cb: this.onmessage})
-    setTimeout(this.onopen, this.latence)
+    setTimeout(() => {
+      this.onopen("" as any)
+    }, this.latence)
   }
   onclose = (ev: CloseEvent) => {
     nodes.delete(this.id)
@@ -41,7 +40,7 @@ class Socket implements ISocket {
    */
   send = (data: string | ArrayBufferLike | Blob | ArrayBufferView): void => {
     if (this.id === "server") {
-      nodes.forEach(({cb}) => cb(new MessageEvent('message', {data})))
+      nodes.forEach(({cb}) => cb(new MessageEvent('message', {data: data as string})))
     } else {
       this.queue.push(data as string)  
       setTimeout(() => {
@@ -54,15 +53,4 @@ class Socket implements ISocket {
 
 export function createSocket(clientId: string, latence?: number): ISocket {
   return new Socket(clientId)
-}
-
-function toInput(data: string): {
-  nodeId: string;
-  clientStep: number;
-} & Intent {
-  return parse(data)
-}
-
-function toMessage(input: {nodeId: string, clientStep: number} & Intent): MessageEvent<string> {
-  return new MessageEvent("message", {data: stringify(input)})
 }

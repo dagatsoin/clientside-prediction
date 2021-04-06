@@ -114,7 +114,6 @@ export function updatePlayersRepresentation(
   currentPlayers: IPlayer[],
   model: IModel<World, SerializedWorld>
 ): IPlayer[] {
-  console.log("recompute players collection");
   currentPlayers.splice(0, currentPlayers.length);
   model.data.entities.forEach((entity) =>
     currentPlayers.push(createPlayer(entity))

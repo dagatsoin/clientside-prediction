@@ -20,3 +20,19 @@ the client is in a different state. Maybe because it cheated, a network error, w
 In such case, the client rolls back to the time where the state diverges.
 Then the state is recomputed with the data sent by the server, and both server and
 client will be now in sync.
+
+### Messages types
+
+The client can receive 3 types of message:
+
+#### sync
+
+The client will hydrate a new snapshot.
+
+#### intent
+
+The client will execture an action.
+
+#### patch
+
+The client diverges from the server step. It will apply a patch to get sync.

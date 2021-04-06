@@ -12,10 +12,9 @@ class Representation implements IServerRepresentation {
   constructor(
     private model: IModel<World, SerializedWorld>
   ) {
-    this.timeTravel = createTimeTravel([
-      { snapshot: model.snapshot, step: 0 }
-    ]);
-    makeObservable(this, {
+    this.timeTravel = createTimeTravel(model.snapshot, {base: 0, opLog: [] });
+    makeObservable<this, "players">(this, {
+      players: computed,
       step: computed
     });
     useNap(this.model, this.timeTravel)
@@ -26,7 +25,7 @@ class Representation implements IServerRepresentation {
   }
   
   get snapshot(): SerializedWorld {
-    return this.timeTravel.at(this.timeTravel.getCurrentStep()).snapshot
+    return this.timeTravel.at(this.timeTravel.getCurrentStep())
   };
 
   private _players: IPlayer[] = [];

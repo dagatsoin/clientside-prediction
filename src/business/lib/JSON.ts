@@ -21,7 +21,7 @@ function reviver(_: any, value: any) {
 export type SerializedMap = {dataType: "Map", value: Array<[string, any]>}
 
 export function isSerializedMap(value: any): value is SerializedMap {
-  return value.dataType === "Map"
+  return value && value.dataType === "Map"
 }
 
 const stringify = (value: any | undefined): string => JSON.stringify(value, replacer)

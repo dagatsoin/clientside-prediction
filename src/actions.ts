@@ -3,7 +3,7 @@ import {
   JSONCommand,
   JSONOperation
 } from "./business/lib/types";
-import { World, Proposal, SerializedEntity, Patch } from "./business/types";
+import { World, Proposal, SerializedEntity, Patch, SerializedWorld } from "./business/types";
 
 const applyPatch = ({patch}: {patch: JSONCommand[]}): Proposal => ({
   mutations: patch.map((command) => ({
@@ -35,7 +35,7 @@ const hydrate = ({
   snapshot,
   shouldRegisterStep = true
 }: {
-  snapshot: World;
+  snapshot: SerializedWorld;
   shouldRegisterStep?: boolean;
 }): Proposal => ({
   shouldRegisterStep,
@@ -108,7 +108,7 @@ export type Intent =
   | {
       type: "hydrate";
       payload: {
-        snapshot: World;
+        snapshot: SerializedWorld;
         shouldRegisterStep?: boolean;
       };
     }

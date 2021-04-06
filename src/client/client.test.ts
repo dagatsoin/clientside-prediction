@@ -3,6 +3,7 @@ import { createModel } from "../business/model";
 import { SerializedWorld } from "../business/types";
 import { createClientRepresentation } from "../state/client";
 import { actions } from "../actions";
+import { ISocket } from '../mockedSocket';
 
 const playerId = "fraktar";
 const snapshot: SerializedWorld = {
@@ -24,7 +25,7 @@ const snapshot: SerializedWorld = {
   }
 };
 const model = createModel(playerId, snapshot);
-const state = createClientRepresentation(model);
+const state = createClientRepresentation(model, () => {}, {} as ISocket);
 const { player } = state;
 it("should instantaly move to left", function () {
   model.present({

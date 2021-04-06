@@ -1,42 +1,42 @@
 import { applyJSONCommand } from "../business/lib/acceptors";
 import { JSONCommand } from "../business/lib/types";
-import { Patch, SerializedWorld } from "../business/types";
-import { OpLog, ITimeTravel } from "./types";
+import { Patch } from "../business/types";
+import { ITimeTravel, Branch } from "./types";
 
-function getPatchTo(opLog: OpLog<any>, to: number): Patch {
-  const index = to - opLog[0].step;
+function getPatchTo(timeline: Branch, to: number): Patch {
+  const index = to - timeline.base;
   const patch: JSONCommand[] = [];
-  for (let i = 1; i <= index; i++) {
-    patch.push(...(opLog[i] as Patch));
+  for (let i = 0; i < index; i++) {
+    patch.push(...(timeline.opLog[i] as Patch));
   }
   return patch;
 }
 
 class TimeTravel<S> implements ITimeTravel<S> {
-  constructor(private timeline: OpLog<S>) {}
+  constructor(private snapshot: S, private timeline: Branch){}  
   checkoutBranch(newBranch: any): void {
     throw new Error("Method not implemented.");
   }
-  createBranch(name: string, clientStep: number): Patch[] {
+  createBranch(name: string, clientStep: number): Branch {
     throw new Error("Method not implemented.");
   }
 
   getCurrentStep() {
-    return this.timeline[0].step + this.timeline.length - 1;
+    return this.timeline.base + this.timeline.opLog.length;
   }
 
   getInitialStep() {
-    return this.timeline[0].step;
+    return this.timeline.base;
   }
 
   getInitalSnapshot() {
-    return this.timeline[0].snapshot;
+    return this.snapshot;
   }
 
   at(step: number) {
     // Cap the step to the current step to prevent overflow
     const _step = Math.min(step, this.getCurrentStep())
-    const snapshot = { ...this.timeline[0].snapshot };
+    const snapshot = { ...this.snapshot };
     getPatchTo(this.timeline, _step).map((command) =>
       applyJSONCommand(snapshot, command)
     );
@@ -44,32 +44,33 @@ class TimeTravel<S> implements ITimeTravel<S> {
   }
 
   get(step: number): Patch | { snapshot: S; step: number } {
-    const index = step - this.timeline[0].step;
-    return this.timeline[index] as any;
+    const index = step - this.timeline.base;
+    return this.timeline.opLog[index];
   }
 
   reset(initialState?: { step: number, snapshot: S }) {
     if (initialState) {
-      this.timeline.splice(0, this.timeline.length, initialState);
-    } else {
-      this.timeline.splice(1);
+      this.snapshot = initialState.snapshot
+      this.timeline.base = initialState.step
     }
+    this.timeline.opLog.splice(0);
   }
 
   push(patch: Readonly<Patch>) {
-    this.timeline.push(patch as any);
+    this.timeline.opLog.push(patch as any);
   }
 
   rebaseRoot(to: number) {
-    const snapshot = this.at(to);
-    const deleteCount = to - this.timeline[0].step + 1;
-    this.timeline.splice(0, deleteCount, {
-      snapshot,
-      step: to
-    });
+    this.snapshot = this.at(to),
+    this.timeline.base = to
+    const deleteCount = to - this.timeline.base + 1;
+    this.timeline.opLog.splice(0, deleteCount);
   }
 }
 
-export function createTimeTravel<S>(timeline: OpLog<S>): ITimeTravel<S> {
-  return new TimeTravel(timeline);
+export function createTimeTravel<S>(
+  initialSnapshot: S,
+  mainBranch: Branch
+): ITimeTravel<S> {
+  return new TimeTravel(initialSnapshot, mainBranch);
 }

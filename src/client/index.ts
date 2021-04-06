@@ -4,6 +4,7 @@ import { createClientRepresentation } from "../state/client";
 import { Dispatcher, IClient } from "./types";
 import { IRepresentation } from "../state/types";
 import { createSocket, ISocket } from '../mockedSocket';
+import { stringify } from '../business/lib/JSON';
 
 class Client implements IClient {
   get state(): IRepresentation {
@@ -13,31 +14,30 @@ class Client implements IClient {
     return this._dispatch;
   }
 
-  async connect() {
-    this._dispatch({
-      type: "addPlayer",
-      payload: { playerId: this.playerId }
-    })
-  }
+  private getState = () => this._state
   private _state: IRepresentation;
   private _dispatch: Dispatcher;
   private socket: ISocket
 
   constructor(
     private readonly playerId: string,
-    
   ) {
     const model = createModel(playerId);
-    this._state = createClientRepresentation(model);
     this.socket = createSocket(this.playerId)
-
+    
+    
     const { dispatch, onMessage } = createDispatcher(
       playerId,
       model,
-      this.state,
+      this.getState,
       this.socket.send
-    );
+      );
+      
+    this._state = createClientRepresentation(model, dispatch, this.socket);
+
+    this.socket.onopen= () => this.socket.send(stringify({type: "sync", data: { clientId: this.playerId }}))
     this.socket.onmessage = onMessage
+    // Sync to the server state
     this._dispatch = dispatch;
   }
 }
