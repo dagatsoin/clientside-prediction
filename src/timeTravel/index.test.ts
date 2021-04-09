@@ -1,7 +1,7 @@
 import { createTimeTravel, getPatchTo } from '.';
 import { Intent } from '../actions';
 import { JSONOperation } from '../business/lib/types';
-import { OpLog } from './types';
+import { Timeline } from './types';
 
 type Snapshot = {
   entities: string[]
@@ -11,7 +11,7 @@ const snapshot: Snapshot = {
   entities: []
 }
 
-const initialOplog: OpLog<Intent> = [{
+const initialOplog: Timeline<Intent> = [{
   timestamp: 0,
   intent: {
     type: "addPlayer",

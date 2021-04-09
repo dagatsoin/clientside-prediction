@@ -34,8 +34,8 @@ class Representation implements IServerRepresentation {
     return updatePlayersRepresentation(this._players, this.model)
   }
   
-  get patch(): JSONCommand[] {
-    return this.timeTravel.get(this.timeTravel.getCurrentStepId() - this.timeTravel.getInitialStep()).patch
+  get patch(): ReadonlyArray<JSONCommand> {
+    return this.timeTravel.get(this.timeTravel.getCurrentStepId()).patch
   };
 }
 

@@ -1,6 +1,7 @@
 import { makeObservable, computed, autorun } from 'mobx';
 import { createTransformer } from 'mobx-utils';
 import { cubicBezier } from "popmotion";
+import { Intent } from '../actions';
 import { Mutation } from "../business/acceptors";
 import {
   ApplyCommand,
@@ -123,19 +124,22 @@ export function updatePlayersRepresentation(
 
 export function useNap(
   model: IModel<World, SerializedWorld>,
-  timeTravel: ITimeTravel<SerializedWorld>
+  timeTravel: ITimeTravel<Intent, SerializedWorld>
 ) {
       // NAP
-
       autorun(() => {
-        if (model.commands.length) {
-          timeTravel.push(model.commands);
+        if (model.patch.length) {
+          timeTravel.push({
+            intent: {...timeTravel.lastIntent},
+            timestamp: Date.now(),
+            patch: model.patch
+          });
         }
       });
   
       // Clean animation
       autorun(() => {
-        model.commands.filter(didStartAnimation).forEach((mutation) => {
+        model.patch.filter(didStartAnimation).forEach((mutation) => {
           setTimeout(
             () =>
               model.present({

@@ -10,7 +10,7 @@ import {
 import { createSocket, ISocket, nodes } from '../mockedSocket';
 import { createServerRepresentation } from "../state/server";
 import { IServerRepresentation } from "../state/types";
-import { ClientMessage } from '../type';
+import { ClientMessage, ServerMessage } from '../type';
 
 type Input = {
   clientId: string;
@@ -41,7 +41,7 @@ class Server implements IServer<World> {
   onSync = (ev: MessageEvent<any>) => {
     const node = nodes.get(parse(ev.data).playerId)
     if (node) {
-      setTimeout(() => node.cb(new MessageEvent(stringify({snapshot: this.model.snapshot, step: this.state.stepId}))), node.latence)
+      node.cb(new MessageEvent(stringify({snapshot: this.model.snapshot, stepId: this.state.stepId})))
     }
   }
 
@@ -51,17 +51,16 @@ class Server implements IServer<World> {
     if (message.type === "sync") {
       const node = nodes.get(message.data.clientId)
       if (node) {
-        setTimeout(() => {
-          node.cb(new MessageEvent<string>("message", {
-            data: stringify({
-              type: "sync",
-              data: {
-                step: this.state.stepId,
-                snapshot: this.model.snapshot
-              }
-            })
-          }))
-        }, node.latence)
+        node.cb(new MessageEvent<string>("message", {
+          data: stringify({
+            type: "sync",
+            data: {
+              stepId: this.state.stepId,
+              snapshot: this.model.snapshot,
+              timeline: []
+            }
+          })
+        }))
       }
     }
     else if (message.type === "intent") {
@@ -71,6 +70,7 @@ class Server implements IServer<World> {
         if (isAllowedAction(message.data.type, message.data.stepId)) {
           // We need to modify the past
           // by creating a new timeline, forked from the input step id.
+          const oldTimelineAge = this.state.timeTravel.getCurrentStepId()
           const newTimeline = this.state.timeTravel.modifyPast(message.data.stepId, (oldTimeline) => {
             // Roll back the model to the input step id
             this.present(
@@ -104,75 +104,54 @@ class Server implements IServer<World> {
               }
             }
           })
-
-          /**
-           * The server has now a new "present"
-           * There are two cases.
-           * A- The new present has lower step id than the old present. We need to force resync all the client to the server present.
-           * B- The new present has higher step id than the old present. We need to push the new timeline to the clients.
-           */
-          if (this.model.commands.length) {
-            console.info(`Server step ${message.data.stepId} was updated, apply delta`);
-            nodes.forEach(({cb, latence}, id) => {
-              if (id !== "server") {
-                if (id !== input.clientId) {
-                  const data = stringify({
-                    type: "intent",
-                    data: input
-                  })
-                  setTimeout(() => {
-                    cb(new MessageEvent<string>("message", {
-                      data
-                    }))
-                  }, latence)
-                } else {
-                  setTimeout(() => {
-                    const data = stringify({
-                      type: "patch",
-                      data: {
-                        step: this.state.stepId,
-                        patch: this.state.patch
-                      }
-                    })
-                    cb(new MessageEvent<string>("message", {
-                      data
-                    }))
-                  }, latence)
-                }
+          console.info("Server modified past", parse(stringify(oldTimelineAge)), parse(stringify(newTimeline)))
+          // The server has now a new "present"
+          // We need to replay the new timeline on the clients.
+          nodes.forEach(({cb, latence}, id) => {
+            if (id !== "server") {
+              if (id !== input.clientId) {
+                const data = stringify({
+                  type: "sync",
+                  data: {
+                    stepId: this.state.timeTravel.getCurrentStepId(),
+                    snapshot: this.state.timeTravel.at(this.state.timeTravel.getCurrentStepId())
+                  }
+                } as ServerMessage)
+                cb(new MessageEvent<string>("message", {
+                  data
+                }))
               }
-            })
-          }        
-        }
+            }
+          })
+        }    
       } 
       // The client is in sync
       else {
         // Trigger the client action
         this.present(actions[input.type](input.payload as any));
-        if (this.model.commands.length) {
+        if (this.model.patch.length) {
           console.info(`New server step ${this.state.timeTravel.getCurrentStepId()}`);
-          nodes.forEach(({cb, latence}, id) => {
-            setTimeout(() => {
-              if (id !== "server") {
-                if (id !== input.clientId) {
-                  cb(new MessageEvent<string>("message", {
-                    data: stringify({
-                      type: "intent",
-                      data: input
-                    })
-                  }))
-                } else {
-                  cb(new MessageEvent<string>("message", {
-                    data: stringify({
-                      type: "patch",
-                      data: {
-                        step: this.state.stepId,
-                        patch: this.state.patch
-                      }
-                    })
-                  }))
-                }
+          nodes.forEach(({cb}, id) => {   
+            if (id !== "server") {
+              if (id !== input.clientId) {
+                cb(new MessageEvent<string>("message", {
+                  data: stringify({
+                    type: "intent",
+                    data: input
+                  })
+                }))
+              } else {
+                cb(new MessageEvent<string>("message", {
+                  data: stringify({
+                    type: "patch",
+                    data: {
+                      stepId: this.state.stepId,
+                      patch: this.state.patch
+                    }
+                  })
+                }))
               }
-            }, latence)
+            }
           })
         }
       }
@@ -187,6 +166,6 @@ class Server implements IServer<World> {
 export function createServer() {
   return new Server();
 }
-function isAllowedAction(type: Intent["type"], step: number) {
+function isAllowedAction(type: Intent["type"], stepId: number) {
   return type === "addPlayer"
 }

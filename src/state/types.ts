@@ -15,7 +15,7 @@ export interface IServerRepresentation {
   readonly stepId: number;
   readonly snapshot: SerializedWorld;
   readonly players: IPlayer[];
-  readonly patch: Step<Intent>;
+  readonly patch: ReadonlyArray<JSONCommand>;
   readonly timeTravel: ITimeTravel<Intent, SerializedWorld>;
 }
 
@@ -27,5 +27,5 @@ export interface IPlayer {
 
 export type StepPatch = {
   stepId: number
-  commands: ReadonlyArray<JSONCommand>
+  patch: ReadonlyArray<JSONCommand>
 }

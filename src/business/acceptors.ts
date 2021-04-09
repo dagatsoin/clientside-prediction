@@ -10,7 +10,7 @@ export enum MutationType {
 type Restore = {
   type: MutationType.restore;
   payload: {
-    step: number;
+    stepId: number;
   };
 };
 

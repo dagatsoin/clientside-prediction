@@ -1,6 +1,7 @@
 import { Intent } from './actions';
 import { SerializedWorld } from './business/types';
 import { StepPatch } from './state/types';
+import { Timeline } from './timeTravel/types';
 
 export enum ControlState {
   off = "off",

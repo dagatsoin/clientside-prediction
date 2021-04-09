@@ -44,13 +44,7 @@ describe("Server sends a sync command", function() {
     }, getLatenceOf(players[0].state.playerId))
   })
 })
-
-/* 
-describe("Server sends a patch", function() {
-  
-})
- 
-
+ /*
 describe("Create a room", function() {
   let players: IClient[] = [];
   let server: IServer<any>
@@ -81,7 +75,7 @@ describe("Create a room", function() {
   })
 
   test("Players are sync with the server", function() {
-    expect(server.state.step).toBe(3)
+    expect(server.state.stepId).toBe(3)
     expect(players[0].state.players.length).toBe(3)
     expect(players[1].state.players.length).toBe(3)
     expect(players[2].state.players.length).toBe(3)

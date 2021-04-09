@@ -18,10 +18,11 @@ class Socket implements ISocket {
   
   constructor(private id: string) {
     const latence = id === "server" ? 0 :Math.floor(Math.random() * 500)
-    nodes.set(id, {latence, cb: this.onmessage})
-    setTimeout(() => {
-      this.onopen("" as any)
-    }, this.latence)
+    nodes.set(id, {
+      latence,
+      // simulate network latency
+      cb: (message: MessageEvent<any>) => setTimeout(() => this.onmessage(message), latence)
+    })
   }
   onclose = (ev: CloseEvent) => {
     nodes.delete(this.id)

@@ -1,20 +1,14 @@
 import { JSONCommand } from '../business/lib/types';
 import { Step } from "../business/types";
 
-export type OpLog<I> = Step<I>[]
+export type Timeline<I> = Step<I>[]
 
 export interface ITimeTravel<I, T> {
-  /**
-   * Retrieve base branch
-   */
-  getBaseBranchStep(stepId: number): Readonly<Step<I> | {
-    timestamp: number;
-    patch: JSONCommand[];
-  }>;
+  lastIntent: I
   /**
    * Start a transaction to modify the past at the given stepId
    */
-  modifyPast(stepId: number, transaction: (oldBranch: Readonly<OpLog<I>>, newTimeline: OpLog<I>) => void): OpLog<I>
+  modifyPast(stepId: number, transaction: (oldBranch: Readonly<Timeline<I>>, newTimeline: Timeline<I>) => void): Timeline<I>
   /**
    * Return the current stepId number
    */
@@ -42,7 +36,7 @@ export interface ITimeTravel<I, T> {
    */
   get(stepId: number): Step<I> | {
     timestamp: number;
-    patch: JSONCommand[];
+    patch: ReadonlyArray<JSONCommand>;
   }
   /**
    * Clear the timeline and keep the first element.
@@ -57,5 +51,5 @@ export interface ITimeTravel<I, T> {
   /**
    * Return a branch for a given name
    */
-  getBaseBranch(): OpLog<I>
+  getBaseBranch(): Timeline<I>
 }

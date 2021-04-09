@@ -101,30 +101,30 @@ export const actions = {
 export type Intent =
   | {
       type: "applyPatch"
-      payload: {
+      payload: Readonly<{
         commands: ReadonlyArray<JSONCommand>
-      }
+      }>
     }
   | {
       type: "hydrate";
-      payload: {
+      payload: Readonly<{
         snapshot: SerializedWorld;
         shouldRegisterStep?: boolean;
-      };
+      }>;
     }
   | {
       type: "addPlayer";
-      payload: { playerId: string };
+      payload: Readonly<{ playerId: string }>;
     }
   | {
       type: "moveRight";
-      payload: { playerId: string };
+      payload: Readonly<{ playerId: string }>;
     }
   | {
       type: "moveLeft";
-      payload: { playerId: string };
+      payload: Readonly<{ playerId: string }>;
     }
   | {
       type: "translateRight";
-      payload: { playerId: string; delta: number };
+      payload: Readonly<{ playerId: string; delta: number }>;
     };

@@ -4,15 +4,10 @@ import { JSONCommand } from "./lib/types";
 export type IModel<T, S> = {
   readonly id: string;
   readonly data: T;
-  readonly commands: ReadonlyArray<JSONCommand>;
+  readonly patch: ReadonlyArray<JSONCommand>;
   readonly snapshot: S;
   present: Present;
 };
-
-export type Timeline<T = any> = Array<{
-  data: T;
-  stepId: number;
-}>;
 
 export type SerializedEntity = {
   id: string;
@@ -89,5 +84,5 @@ export type Step<I> = {
    */
   intent: I
   timestamp: number
-  patch: JSONCommand[]
+  patch: ReadonlyArray<JSONCommand>
 };

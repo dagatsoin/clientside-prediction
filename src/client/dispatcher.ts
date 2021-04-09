@@ -27,8 +27,13 @@ export function createDispatcher(
       // Use native parser to keep the serialized map
       const message: ServerMessage = JSON.parse(messageEvent.data)
       const { timeTravel } = getState();
+      // The server is ahead, resync client
       if (message.type === "sync") {
-        timeTravel.reset(message.data)
+        // TODO reset on server initial snapshot and replay actions in a different timeline. Apply changes only if diff.
+        timeTravel.reset({
+          stepId: message.data.stepId,
+          snapshot: message.data.snapshot
+        })
         model.present(actions.hydrate({ snapshot: message.data.snapshot }), false)
       } else if (message.type === "intent") {
         model.present(actions[message.data.type](message.data.payload as any))
@@ -38,25 +43,25 @@ export function createDispatcher(
         if (message.data.stepId > timeTravel.getCurrentStepId()) {
           console.info(`${clientId} is behind, fast forward`)
           model.present(actions.applyPatch({
-              commands: message.data.commands
+              commands: message.data.patch
           }))
         }
         // State diverges. Rollback to the server state.
         else if (
-          stringify(message.data.commands) !==
-          stringify(timeTravel.get(message.data.stepId))
+          stringify(message.data.patch) !==
+          stringify(timeTravel.get(message.data.stepId).patch)
         ) {
           console.info(
-            stringify(message.data.commands),
+            stringify(message.data.patch),
             stringify(timeTravel.get(message.data.stepId)),
             `Invalid client state at step ${message.data.stepId}. Reset to step ${
-              timeTravel.getInitialStep() as any
+              timeTravel.getInitialStep()
             }`,
             stringify(timeTravel.getInitalSnapshot())
           );
           timeTravel.reset();
           model.present(actions.hydrate({
-            snapshot: (timeTravel.getInitalSnapshot() as any).snapshot,
+            snapshot: timeTravel.getInitalSnapshot(),
             shouldRegisterStep: false
           }));
         }
@@ -71,7 +76,9 @@ export function createDispatcher(
       }
     },
     dispatch(intent: Intent) {
-      const { stepId: cStep } = getState();
+      const { stepId: cStep, timeTravel } = getState();
+      // Backup intent to write the next step
+      timeTravel.lastIntent = {...intent}
       const step = cStep;
       send(stringify({type: "intent", data: { clientId, step, ...intent }}));
       model.present(actions[intent.type](intent.payload as any));
