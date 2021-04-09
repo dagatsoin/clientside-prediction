@@ -3,7 +3,7 @@ import { JSONCommand } from "../business/lib/types";
 import { Step } from "../business/types";
 import { ITimeTravel, OpLog } from "./types";
 
-function getPatchTo(timeline: OpLog<any>, opLogIndex: number): JSONCommand[] {
+export function getPatchTo(timeline: OpLog<any>, opLogIndex: number): JSONCommand[] {
   const commands: JSONCommand[] = [];
   for (let i = 0; i < opLogIndex; i++) {
     commands.push(...(timeline[i].patch));
@@ -87,12 +87,11 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
   }
 
   rebaseRoot(to: number) {
-    const oldInitialState = this.initialState.step
+    const deleteCount = to - this.initialState.step;
     this.initialState = {
       snapshot: this.at(to),
       step: to
     }
-    const deleteCount = to - oldInitialState + 1;
     this.timeline.splice(0, deleteCount);
   }
 }
