@@ -9,9 +9,8 @@ import {
 } from "../business/types";
 import { createSocket, ISocket, nodes } from '../mockedSocket';
 import { createServerRepresentation } from "../state/server";
-import { IServerRepresentation, StepPatch } from "../state/types";
-import { Branch } from '../timeTravel/types';
-import { ClientMessage, ServerMessage } from '../type';
+import { IServerRepresentation } from "../state/types";
+import { ClientMessage } from '../type';
 
 type Input = {
   clientId: string;
@@ -84,7 +83,7 @@ class Server implements IServer<World> {
             this.present(actions[input.type](input.payload as any));
             for (let i = message.data.step + 1; i < baseBranch.length; i++) {
               const { intent } = baseBranch[i]
-              this.present(actions[intent.type](intent.payload as any));
+             // this.present(actions[intent.type](intent.payload as any));
             }
           } 
           // The current intent was triggered before the new instance
@@ -95,7 +94,7 @@ class Server implements IServer<World> {
             this.present(actions[input.type](input.payload as any));
             for (let i = message.data.step + 2; i < baseBranch.length; i++) {
               const { intent } = baseBranch[i]
-              this.present(actions[intent.type](intent.payload as any));
+          //    this.present(actions[intent.type](intent.payload as any));
             }
           }
 

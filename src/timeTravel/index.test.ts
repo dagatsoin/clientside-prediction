@@ -52,7 +52,7 @@ test("Return the initial snapshot", function() {
   })
 })
 test("Return the snapshot at the given step", function() {
-  expect(timeTraveler.at(2)).toEqual({entities: ["Player0"]})
+  expect(timeTraveler.at(1)).toEqual({entities: ["Player0"]})
 })
 test("Add a new step", function() {
   timeTraveler.push({
@@ -114,5 +114,68 @@ test("Rebase the root to the given step. All the previous step will be lost.", f
   expect(timeTraveler.getCurrentStep()).toBe(2)
   expect(timeTraveler.getInitalSnapshot()).toEqual({
     entities: ["Player0"]
+  })
+})
+
+/**
+ * Test the main purpose of the time travel, modify the past steps by inserting a new step
+ */
+test("Modify the past", function() {
+  // Add some steps
+  timeTraveler.push({
+    timestamp: 0,
+    intent: {
+      type: "addPlayer",
+      payload: {playerId: "Player1"}
+    },
+    patch: [{
+      op: JSONOperation.add,
+      path: "/entities/1",
+      value: "Player1"
+    }],
+  },
+  {
+    timestamp: 0,
+    intent: {
+      type: "addPlayer",
+      payload: {playerId: "Player2"}
+    },
+    patch: [{
+      op: JSONOperation.add,
+      path: "/entities/2",
+      value: "Player2"
+    }],
+  })
+  timeTraveler.modifyPast(1, function(oldBranch, newTimeline) {
+    expect(newTimeline.length).toBe(2)
+
+    newTimeline.push({
+      timestamp: 0,
+      intent: {
+        type: "addPlayer",
+        payload: {playerId: "HPBPlayer"}
+      },
+      patch: [{
+        op: JSONOperation.add,
+        path: "/entities/1",
+        value: "HPBPlayer"
+      }],
+    }, {
+      timestamp: 0,
+      intent: {
+        type: "addPlayer",
+        payload: {playerId: "Player2"}
+      },
+      patch: [{
+        op: JSONOperation.add,
+        path: "/entities/2",
+        value: "Player2"
+      }],
+    })
+  })
+  
+  expect(timeTraveler.getCurrentStep()).toBe(4)
+  expect(timeTraveler.at(3)).toEqual({
+    entities: ["Player0", "Player1", "HPBPlayer", "Player2"]
   })
 })

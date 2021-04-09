@@ -1,4 +1,5 @@
 import { applyJSONCommand } from "../business/lib/acceptors";
+import { parse, stringify } from '../business/lib/JSON';
 import { JSONCommand } from "../business/lib/types";
 import { Step } from "../business/types";
 import { ITimeTravel, OpLog } from "./types";
@@ -17,19 +18,17 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
     step: number
   }, private timeline: OpLog<I>){}
   
-  private nextBranch: OpLog<I> | undefined
-
-  swap(): void {
-    if (this.nextBranch) {
-      this.timeline = this.nextBranch
-      this.nextBranch = undefined
+  private baseBranch: OpLog<I> | undefined
+  
+  modifyPast(step: number, transaction: (baseBranch: Readonly<OpLog<I>>, newBranch: OpLog<I>) => void) {
+    if (step - this.initialState.step + 1 >= this.timeline.length) {
+      console.warn("can't fork at step", step)
     }
-  }
-
-  fork(step: number) {
     // Don't mess with the base timeline
-    Object.freeze(this.timeline)
-    this.nextBranch = this.timeline.slice(step - this.initialState.step) as OpLog<I>
+    this.baseBranch = this.timeline.splice(step - this.initialState.step + 1)
+    Object.freeze(this.baseBranch)
+    transaction(this.baseBranch, this.timeline)
+    this.baseBranch = undefined
   }
   
   getBaseBranch(): OpLog<I> {
@@ -58,7 +57,7 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
   at(step: number) {
     // Cap the step to the current step to prevent overflow
     const _step = Math.min(step, this.getCurrentStep())
-    const snapshot = { ...this.initialState.snapshot };
+    const snapshot = parse(stringify(this.initialState.snapshot));
     getPatchTo(this.timeline, _step - this.initialState.step).map((command) =>
       applyJSONCommand(snapshot, command)
     );
@@ -83,6 +82,9 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
   }
 
   push(...steps: Step<I>[]) {
+    if (Array.isArray(steps)) {
+      steps.forEach(Object.freeze)
+    }
     this.timeline.push(...steps);
   }
 

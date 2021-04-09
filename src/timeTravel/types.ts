@@ -5,10 +5,6 @@ export type OpLog<I> = Step<I>[]
 
 export interface ITimeTravel<I, T> {
   /**
-   * Replace the base branch by the draft branch
-   */
-  swap(): void;
-  /**
    * Retrieve base branch
    */
   getBaseBranchStep(step: number): Readonly<Step<I> | {
@@ -16,10 +12,9 @@ export interface ITimeTravel<I, T> {
     patch: JSONCommand[];
   }>;
   /**
-   * Copy a section of the timeline from the given step
-   * and reset the base timeline to the given step.
+   * Start a transaction to modify the past at the given step
    */
-  fork(step: number): void;
+  modifyPast(step: number, transaction: (oldBranch: Readonly<OpLog<I>>, newTimeline: OpLog<I>) => void): void
   /**
    * Return the current step number
    */
