@@ -15,20 +15,21 @@ export function getPatchTo(timeline: OpLog<any>, opLogIndex: number): JSONComman
 class TimeTravel<I, S> implements ITimeTravel<I, S> {
   constructor(private initialState: {
     snapshot: S
-    step: number
+    stepId: number
   }, private timeline: OpLog<I>){}
   
   private baseBranch: OpLog<I> | undefined
   
   modifyPast(step: number, transaction: (baseBranch: Readonly<OpLog<I>>, newBranch: OpLog<I>) => void) {
-    if (step - this.initialState.step >= this.timeline.length) {
+    if (step - this.initialState.stepId >= this.timeline.length) {
       console.warn("can't fork at step", step)
     }
     // Don't mess with the base timeline
-    this.baseBranch = this.timeline.splice(step - this.initialState.step)
+    this.baseBranch = this.timeline.splice(step - this.initialState.stepId)
     Object.freeze(this.baseBranch)
     transaction(this.baseBranch, this.timeline)
     this.baseBranch = undefined
+    return this.timeline.slice(step - this.initialState.stepId)
   }
   
   getBaseBranch(): OpLog<I> {
@@ -39,15 +40,15 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
     timestamp: number;
     patch: JSONCommand[];
   }> {
-    return this.timeline[step - this.initialState.step]
+    return this.timeline[step - this.initialState.stepId]
   }
 
-  getCurrentStep() {
-    return this.initialState.step + this.timeline.length;
+  getCurrentStepId() {
+    return this.initialState.stepId + this.timeline.length;
   }
 
   getInitialStep() {
-    return this.initialState.step;
+    return this.initialState.stepId;
   }
 
   getInitalSnapshot() {
@@ -56,9 +57,9 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
 
   at(step: number) {
     // Cap the step to the current step to prevent overflow
-    const _step = Math.min(step, this.getCurrentStep())
+    const _step = Math.min(step, this.getCurrentStepId())
     const snapshot = parse(stringify(this.initialState.snapshot));
-    getPatchTo(this.timeline, _step - this.initialState.step).map((command) =>
+    getPatchTo(this.timeline, _step - this.initialState.stepId).map((command) =>
       applyJSONCommand(snapshot, command)
     );
     return snapshot
@@ -70,11 +71,11 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
       timestamp: number;
       patch: JSONCommand[];
     } {
-    const index = step - this.initialState.step;
+    const index = step - this.initialState.stepId;
     return this.timeline[index];
   }
 
-  reset(initialState?: { step: number, snapshot: S }) {
+  reset(initialState?: { stepId: number, snapshot: S }) {
     if (initialState) {
       this.initialState = { ...initialState }
     }
@@ -89,10 +90,10 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
   }
 
   rebaseRoot(to: number) {
-    const deleteCount = to - this.initialState.step;
+    const deleteCount = to - this.initialState.stepId;
     this.initialState = {
       snapshot: this.at(to),
-      step: to
+      stepId: to
     }
     this.timeline.splice(0, deleteCount);
   }
@@ -101,7 +102,7 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
 export function createTimeTravel<I, S>(
   initialState: {
     snapshot: S,
-    step: number
+    stepId: number
   },
   initialOpLog: OpLog<I>
 ): ITimeTravel<I, S> {

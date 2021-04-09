@@ -41,7 +41,7 @@ class Server implements IServer<World> {
   onSync = (ev: MessageEvent<any>) => {
     const node = nodes.get(parse(ev.data).playerId)
     if (node) {
-      setTimeout(() => node.cb(new MessageEvent(stringify({snapshot: this.model.snapshot, step: this.state.step}))), node.latence)
+      setTimeout(() => node.cb(new MessageEvent(stringify({snapshot: this.model.snapshot, step: this.state.stepId}))), node.latence)
     }
   }
 
@@ -56,7 +56,7 @@ class Server implements IServer<World> {
             data: stringify({
               type: "sync",
               data: {
-                step: this.state.step,
+                step: this.state.stepId,
                 snapshot: this.model.snapshot
               }
             })
@@ -66,43 +66,53 @@ class Server implements IServer<World> {
     }
     else if (message.type === "intent") {
       const input = message.data
-      // the incoming intent is for a previous step
-      if (message.data.step < this.state.step) {
-        if (isAllowedAction(message.data.type, message.data.step)) {
-          // Fork the timeline at this point
-          this.state.timeTravel.fork(message.data.step)
-          // Rollback to this branch root
-          this.present(
-            actions.hydrate({snapshot: this.state.timeTravel.at(message.data.step)}),
-            false
-          )
-          // New intent was triggered before the actual 
-          const baseBranch = this.state.timeTravel.getBaseBranch()
+      // The incoming intent is for a previous step
+      if (message.data.stepId < this.state.stepId) {
+        if (isAllowedAction(message.data.type, message.data.stepId)) {
+          // We need to modify the past
+          // by creating a new timeline, forked from the input step id.
+          const newTimeline = this.state.timeTravel.modifyPast(message.data.stepId, (oldTimeline) => {
+            // Roll back the model to the input step id
+            this.present(
+              actions.hydrate({snapshot: this.state.timeTravel.at(message.data.stepId)}),
+              false
+            )
+            
+            // Case 1: new intent was triggered before the old one.
+            if (message.data.timestamp < this.state.timeTravel.get(message.data.stepId).timestamp) {
+              // Insert the input action in the new timeline
+              this.present(actions[input.type](input.payload as any));
+              
+              // Then replay all the old timeline actions
+              for (let i = message.data.stepId + 1; i < oldTimeline.length; i++) {
+                const { intent } = oldTimeline[i]
+                this.present(actions[intent.type](intent.payload as any));
+              }
+            } 
+            // Case 2: the old intent was triggered before the new instance.
+            else {
+              // Cherry pick the old step
+              this.state.timeTravel.push(oldTimeline[0])
+              
+              // Trigger the new intent
+              this.present(actions[input.type](input.payload as any));
 
-          if (message.data.timestamp < this.state.timeTravel.get(message.data.step).timestamp) {
-            this.present(actions[input.type](input.payload as any));
-            for (let i = message.data.step + 1; i < baseBranch.length; i++) {
-              const { intent } = baseBranch[i]
-             // this.present(actions[intent.type](intent.payload as any));
+              // Then replay all the old timeline actions
+              for (let i = message.data.stepId + 2; i < oldTimeline.length; i++) {
+                const { intent } = oldTimeline[i]
+                this.present(actions[intent.type](intent.payload as any));
+              }
             }
-          } 
-          // The current intent was triggered before the new instance
-          else {
-            // Cherry pick the corresponding step from the main branch
-            this.state.timeTravel.push(this.state.timeTravel.getBaseBranchStep(message.data.step))
-            // Trigger the new intent
-            this.present(actions[input.type](input.payload as any));
-            for (let i = message.data.step + 2; i < baseBranch.length; i++) {
-              const { intent } = baseBranch[i]
-          //    this.present(actions[intent.type](intent.payload as any));
-            }
-          }
+          })
 
-          // Rebase the servers state on the new fork
-          this.state.timeTravel.swap()
-
+          /**
+           * The server has now a new "present"
+           * There are two cases.
+           * A- The new present has lower step id than the old present. We need to force resync all the client to the server present.
+           * B- The new present has higher step id than the old present. We need to push the new timeline to the clients.
+           */
           if (this.model.commands.length) {
-            console.info(`Server step ${message.data.step} was updated, apply delta`);
+            console.info(`Server step ${message.data.stepId} was updated, apply delta`);
             nodes.forEach(({cb, latence}, id) => {
               if (id !== "server") {
                 if (id !== input.clientId) {
@@ -120,7 +130,7 @@ class Server implements IServer<World> {
                     const data = stringify({
                       type: "patch",
                       data: {
-                        step: this.state.step,
+                        step: this.state.stepId,
                         patch: this.state.patch
                       }
                     })
@@ -139,7 +149,7 @@ class Server implements IServer<World> {
         // Trigger the client action
         this.present(actions[input.type](input.payload as any));
         if (this.model.commands.length) {
-          console.info(`New server step ${this.state.timeTravel.getCurrentStep()}`);
+          console.info(`New server step ${this.state.timeTravel.getCurrentStepId()}`);
           nodes.forEach(({cb, latence}, id) => {
             setTimeout(() => {
               if (id !== "server") {
@@ -155,7 +165,7 @@ class Server implements IServer<World> {
                     data: stringify({
                       type: "patch",
                       data: {
-                        step: this.state.step,
+                        step: this.state.stepId,
                         patch: this.state.patch
                       }
                     })

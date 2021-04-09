@@ -1,5 +1,6 @@
 import { makeObservable, computed } from 'mobx';
-import { JSONOperation } from '../business/lib/types';
+import { Intent } from '../actions';
+import { JSONCommand, JSONOperation } from '../business/lib/types';
 import { IModel, Step, SerializedWorld, World } from '../business/types';
 import { createTimeTravel } from '../timeTravel';
 import { ITimeTravel } from '../timeTravel/types';
@@ -7,25 +8,25 @@ import { updatePlayersRepresentation, useNap } from './lib';
 import { IPlayer, IServerRepresentation } from './types';
 
 class Representation implements IServerRepresentation {
-  public timeTravel: ITimeTravel<SerializedWorld>;
+  public timeTravel: ITimeTravel<Intent, SerializedWorld>;
   
   constructor(
     private model: IModel<World, SerializedWorld>
   ) {
-    this.timeTravel = createTimeTravel(model.snapshot, {name: "server", rootStep: 0, opLog: [] });
+    this.timeTravel = createTimeTravel({snapshot: model.snapshot, stepId: 0}, []);
     makeObservable<this, "players">(this, {
       players: computed,
-      step: computed
+      stepId: computed
     });
     useNap(this.model, this.timeTravel)
   }
   
-  get step() {
-    return this.timeTravel.getCurrentStep();
+  get stepId() {
+    return this.timeTravel.getCurrentStepId();
   }
   
   get snapshot(): SerializedWorld {
-    return this.timeTravel.at(this.timeTravel.getCurrentStep())
+    return this.timeTravel.at(this.timeTravel.getCurrentStepId())
   };
 
   private _players: IPlayer[] = [];
@@ -33,20 +34,17 @@ class Representation implements IServerRepresentation {
     return updatePlayersRepresentation(this._players, this.model)
   }
   
-  get patch(): Step {
-    const data = this.timeTravel.get(this.timeTravel.getCurrentStep())
-    return isTimelineRoot(data)
-      ? [{ op: JSONOperation.replace, path: "/", value: data }]
-      : data
+  get patch(): JSONCommand[] {
+    return this.timeTravel.get(this.timeTravel.getCurrentStepId() - this.timeTravel.getInitialStep()).patch
   };
 }
 
-function isTimelineRoot(data: Step | {
+function isTimelineRoot(data: Step<Intent> | {
   snapshot: SerializedWorld;
-  step: number;
+  stepId: number;
 }): data is {
   snapshot: SerializedWorld;
-  step: number;
+  stepId: number;
 } {
   return "snapshot" in data
 }

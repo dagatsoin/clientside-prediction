@@ -25,23 +25,23 @@ const initialOplog: OpLog<Intent> = [{
 }]
 
 const timeTraveler = createTimeTravel<Intent, Snapshot>(
-  {snapshot, step: 0},
+  {snapshot, stepId: 0},
   [...initialOplog]
 )
 
 beforeEach(function() {
-  timeTraveler.reset({step: 0, snapshot})
+  timeTraveler.reset({stepId: 0, snapshot})
   timeTraveler.push(...initialOplog)
 })
 
 test("Clear the timeline and keep the first element", function() {
-  timeTraveler.reset({step: 1, snapshot: { entities: ["Player0"] }})
-  expect(timeTraveler.getCurrentStep()).toBe(1)
+  timeTraveler.reset({stepId: 1, snapshot: { entities: ["Player0"] }})
+  expect(timeTraveler.getCurrentStepId()).toBe(1)
   expect(timeTraveler.getInitalSnapshot()).toEqual({ entities: ["Player0"] })
 })
 
 test("Return the current step number", function() {
-  expect(timeTraveler.getCurrentStep()).toBe(1)
+  expect(timeTraveler.getCurrentStepId()).toBe(1)
 })
 test("Return the step number of the initial snapshot", function() {
   expect(timeTraveler.getInitialStep()).toBe(0)
@@ -67,7 +67,7 @@ test("Add a new step", function() {
       value: "Player1"
     }],
   })
-  expect(timeTraveler.getCurrentStep()).toBe(2)
+  expect(timeTraveler.getCurrentStepId()).toBe(2)
 })
 test("Return the patch at the given timeline step", function() {
   timeTraveler.push({
@@ -111,7 +111,7 @@ test("Rebase the root to the given step. All the previous step will be lost.", f
   })
   timeTraveler.rebaseRoot(1)
   expect(timeTraveler.getInitialStep()).toBe(1)
-  expect(timeTraveler.getCurrentStep()).toBe(2)
+  expect(timeTraveler.getCurrentStepId()).toBe(2)
   expect(timeTraveler.getInitalSnapshot()).toEqual({
     entities: ["Player0"]
   })
@@ -175,7 +175,7 @@ test("Modify the past", function() {
     })
   })
   
-  expect(timeTraveler.getCurrentStep()).toBe(4)
+  expect(timeTraveler.getCurrentStepId()).toBe(4)
   expect(timeTraveler.at(4)).toEqual({
     entities: ["Player0", "Player1", "HPBPlayer", "Player2"]
   })

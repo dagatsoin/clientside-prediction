@@ -1,5 +1,5 @@
-import { autorun, computed, makeObservable, reaction } from "mobx";
-import { stringify } from '../business/lib/JSON';
+import { computed, makeObservable } from "mobx";
+import { Intent } from '../actions';
 import { IModel, SerializedWorld, World } from "../business/types";
 import { Dispatcher } from '../client/types';
 import { ISocket } from '../mockedSocket';
@@ -27,13 +27,13 @@ class Representation implements IRepresentation {
     return this.players.find(({ id }) => id === this.playerId)!;
   }
 
-  private _timeTravel: ITimeTravel<SerializedWorld>;
+  private _timeTravel: ITimeTravel<Intent, SerializedWorld>;
   get timeTravel() {
     return this._timeTravel;
   }
 
-  get step() {
-    return this.timeTravel.getCurrentStep();
+  get stepId() {
+    return this.timeTravel.getCurrentStepId();
   }
 
   constructor(
@@ -41,7 +41,7 @@ class Representation implements IRepresentation {
     private dispatch: Dispatcher,
     socket: ISocket
   ) {
-    this._timeTravel = createTimeTravel(model.snapshot, {name: this.playerId, rootStep: 0, opLog: [] });
+    this._timeTravel = createTimeTravel({ snapshot: model.snapshot, stepId: 0 }, []);
     makeObservable(this, {
       player: computed,
       players: computed

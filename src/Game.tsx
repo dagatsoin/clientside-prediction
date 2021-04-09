@@ -32,7 +32,7 @@ export function Game({ state, dispatch }: IClient) {
           <div key={player.id}>
             <button onClick={() => doSomething(dispatch)}>Play</button>
             <p>x{player.position.x}</p>
-            <p>step{state.step}</p>
+            <p>step{state.stepId}</p>
           </div>
         );
       })}

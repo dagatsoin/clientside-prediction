@@ -41,13 +41,13 @@ it("should instantaly move to left", function () {
     ]
   });
   expect(player.position.x).toBe(10);
-  expect(state.step).toBe(1);
+  expect(state.stepId).toBe(1);
 });
 it("should translate on left in 100ms", function (done) {
   model.present(actions.translateRight({ playerId, delta: 10 }));
   setTimeout(function () {
     try {
-      expect(state.step).toBe(3);
+      expect(state.stepId).toBe(3);
       expect(player.position.x).toBe(20);
 
       done();

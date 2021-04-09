@@ -7,20 +7,20 @@ export interface ITimeTravel<I, T> {
   /**
    * Retrieve base branch
    */
-  getBaseBranchStep(step: number): Readonly<Step<I> | {
+  getBaseBranchStep(stepId: number): Readonly<Step<I> | {
     timestamp: number;
     patch: JSONCommand[];
   }>;
   /**
-   * Start a transaction to modify the past at the given step
+   * Start a transaction to modify the past at the given stepId
    */
-  modifyPast(step: number, transaction: (oldBranch: Readonly<OpLog<I>>, newTimeline: OpLog<I>) => void): void
+  modifyPast(stepId: number, transaction: (oldBranch: Readonly<OpLog<I>>, newTimeline: OpLog<I>) => void): OpLog<I>
   /**
-   * Return the current step number
+   * Return the current stepId number
    */
-  getCurrentStep(): number;
+  getCurrentStepId(): number;
   /**
-   * Return the step number of the initial snapshot
+   * Return the stepId of the initial snapshot
    */
   getInitialStep(): number;
   /**
@@ -28,10 +28,10 @@ export interface ITimeTravel<I, T> {
    */
   getInitalSnapshot(): T;
   /**
-   * Return the snapshot at the given step
+   * Return the snapshot at the given stepId
    */
   at(
-    step: number
+    stepId: number
   ): T
   /**
    * Add a new step
@@ -40,7 +40,7 @@ export interface ITimeTravel<I, T> {
   /**
    * Return the patch at the given timeline step
    */
-  get(step: number): Step<I> | {
+  get(stepId: number): Step<I> | {
     timestamp: number;
     patch: JSONCommand[];
   }
@@ -48,9 +48,9 @@ export interface ITimeTravel<I, T> {
    * Clear the timeline and keep the first element.
    * Replace the initial snapshot and step if given.
    */
-  reset(initialState?: {step: number, snapshot: T}): void;
+  reset(initialState?: {stepId: number, snapshot: T}): void;
   /**
-   * Rebase the root to the given step.
+   * Rebase the root to the given stepId.
    * All the previous step will be lost.
    */
   rebaseRoot(to: number): void;

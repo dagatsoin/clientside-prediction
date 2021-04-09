@@ -33,9 +33,9 @@ export function createDispatcher(
       } else if (message.type === "intent") {
         model.present(actions[message.data.type](message.data.payload as any))
       } else if (message.type === "patch") {
-        console.log(`${clientId} received data from server step ${message.data.step}`);
+        console.log(`${clientId} received data from server step ${message.data.stepId}`);
         // Fast forward: resync client to the server step
-        if (message.data.step > timeTravel.getCurrentStep()) {
+        if (message.data.stepId > timeTravel.getCurrentStepId()) {
           console.info(`${clientId} is behind, fast forward`)
           model.present(actions.applyPatch({
               commands: message.data.commands
@@ -44,12 +44,12 @@ export function createDispatcher(
         // State diverges. Rollback to the server state.
         else if (
           stringify(message.data.commands) !==
-          stringify(timeTravel.get(message.data.step))
+          stringify(timeTravel.get(message.data.stepId))
         ) {
           console.info(
             stringify(message.data.commands),
-            stringify(timeTravel.get(message.data.step)),
-            `Invalid client state at step ${message.data.step}. Reset to step ${
+            stringify(timeTravel.get(message.data.stepId)),
+            `Invalid client state at step ${message.data.stepId}. Reset to step ${
               timeTravel.getInitialStep() as any
             }`,
             stringify(timeTravel.getInitalSnapshot())
@@ -63,7 +63,7 @@ export function createDispatcher(
         // Client and server states are the same. Rebase the client root
         // to the server step.
         else {
-          timeTravel.rebaseRoot(message.data.step);
+          timeTravel.rebaseRoot(message.data.stepId);
           console.log(
             `Rebase ${clientId} state on server step ${timeTravel.getInitialStep()}`
           );
@@ -71,7 +71,7 @@ export function createDispatcher(
       }
     },
     dispatch(intent: Intent) {
-      const { step: cStep } = getState();
+      const { stepId: cStep } = getState();
       const step = cStep;
       send(stringify({type: "intent", data: { clientId, step, ...intent }}));
       model.present(actions[intent.type](intent.payload as any));

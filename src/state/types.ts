@@ -1,21 +1,22 @@
+import { Intent } from '../actions';
 import { JSONCommand } from '../business/lib/types';
 import { Step, Position, SerializedWorld } from "../business/types";
 import { ITimeTravel } from "../timeTravel/types";
 
 export interface IRepresentation {
-  readonly step: number;
+  readonly stepId: number;
   readonly playerId: string;
   readonly player: IPlayer;
   readonly players: IPlayer[];
-  readonly timeTravel: ITimeTravel<SerializedWorld>;
+  readonly timeTravel: ITimeTravel<Intent, SerializedWorld>;
 }
 
 export interface IServerRepresentation {
-  readonly step: number;
+  readonly stepId: number;
   readonly snapshot: SerializedWorld;
   readonly players: IPlayer[];
-  readonly patch: Step;
-  readonly timeTravel: ITimeTravel<SerializedWorld>;
+  readonly patch: Step<Intent>;
+  readonly timeTravel: ITimeTravel<Intent, SerializedWorld>;
 }
 
 export interface IPlayer {
@@ -25,6 +26,6 @@ export interface IPlayer {
 }
 
 export type StepPatch = {
-  step: number
+  stepId: number
   commands: ReadonlyArray<JSONCommand>
 }

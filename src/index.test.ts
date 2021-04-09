@@ -39,7 +39,7 @@ describe("Server sends a sync command", function() {
   test("Player is hydrated after connexion", function(done) {
     setTimeout(function(){
       expect(players[0].state.players.length).toBe(1)
-      expect(players[0].state.step).toBe(1)
+      expect(players[0].state.stepId).toBe(1)
       done()
     }, getLatenceOf(players[0].state.playerId))
   })

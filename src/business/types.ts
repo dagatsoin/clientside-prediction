@@ -11,7 +11,7 @@ export type IModel<T, S> = {
 
 export type Timeline<T = any> = Array<{
   data: T;
-  step: number;
+  stepId: number;
 }>;
 
 export type SerializedEntity = {

@@ -6,7 +6,7 @@
   "scripts": {
     "start": "parcel index.html --open",
     "build": "parcel build index.html",
-    "test": "jest src/timeTravel/index.test.ts"
+    "test": "jest"
   },
   "dependencies": {
     "@types/react": "17.0.3",

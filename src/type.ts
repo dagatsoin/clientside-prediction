@@ -14,9 +14,9 @@ export type State = {
 
 export type ServerMessage =
  | { type: "patch", data: StepPatch }
- | { type: "intent", data: ({ clientId: string, step: number } & Intent) }
- | { type: "sync", data: { step: number, snapshot: SerializedWorld } }
+ | { type: "intent", data: ({ clientId: string, stepId: number } & Intent) }
+ | { type: "sync", data: { stepId: number, snapshot: SerializedWorld } }
 
  export type ClientMessage =
- | { type: "intent", data: ({ clientId: string, step: number, timestamp: number } & Intent) }
+ | { type: "intent", data: ({ clientId: string, stepId: number, timestamp: number } & Intent) }
  | { type: "sync", data: { clientId: string } }

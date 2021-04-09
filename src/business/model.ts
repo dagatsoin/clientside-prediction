@@ -70,10 +70,10 @@ export class Model implements IModel<World, SerializedWorld> {
     snapshot: SerializedWorld = { entities: {dataType: "Map", value: []} }
   ) {
     this.hydrate(snapshot);
-    makeObservable<Model, "_patch">(this, {
+    makeObservable<Model, "_commands">(this, {
       data: observable,
       commands: computed,
-      _patch: observable.shallow,
+      _commands: observable.shallow,
       present: transaction
     });
   }
