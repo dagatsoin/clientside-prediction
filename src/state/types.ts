@@ -1,4 +1,5 @@
-import { Patch, Position, SerializedWorld } from "../business/types";
+import { JSONCommand } from '../business/lib/types';
+import { Step, Position, SerializedWorld } from "../business/types";
 import { ITimeTravel } from "../timeTravel/types";
 
 export interface IRepresentation {
@@ -13,7 +14,7 @@ export interface IServerRepresentation {
   readonly step: number;
   readonly snapshot: SerializedWorld;
   readonly players: IPlayer[];
-  readonly patch: Patch;
+  readonly patch: Step;
   readonly timeTravel: ITimeTravel<SerializedWorld>;
 }
 
@@ -25,5 +26,5 @@ export interface IPlayer {
 
 export type StepPatch = {
   step: number
-  patch: Patch
+  commands: ReadonlyArray<JSONCommand>
 }

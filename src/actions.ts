@@ -3,10 +3,10 @@ import {
   JSONCommand,
   JSONOperation
 } from "./business/lib/types";
-import { World, Proposal, SerializedEntity, Patch, SerializedWorld } from "./business/types";
+import { Proposal, SerializedEntity, SerializedWorld } from "./business/types";
 
-const applyPatch = ({patch}: {patch: JSONCommand[]}): Proposal => ({
-  mutations: patch.map((command) => ({
+const applyPatch = ({commands}: {commands: ReadonlyArray<JSONCommand>}): Proposal => ({
+  mutations: commands.map((command) => ({
     type: BasicMutationType.jsonCommand,
     payload: command
   }))
@@ -102,7 +102,7 @@ export type Intent =
   | {
       type: "applyPatch"
       payload: {
-        patch: Patch
+        commands: ReadonlyArray<JSONCommand>
       }
     }
   | {

@@ -18,5 +18,5 @@ export type ServerMessage =
  | { type: "sync", data: { step: number, snapshot: SerializedWorld } }
 
  export type ClientMessage =
- | { type: "intent", data: ({ clientId: string, step: number } & Intent) }
+ | { type: "intent", data: ({ clientId: string, step: number, timestamp: number } & Intent) }
  | { type: "sync", data: { clientId: string } }

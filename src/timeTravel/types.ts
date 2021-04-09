@@ -1,21 +1,25 @@
-import { Patch } from "../business/types";
+import { JSONCommand } from '../business/lib/types';
+import { Step } from "../business/types";
 
-export type OpLog = Patch[];
-export type Branch = {
-  base: number
-  opLog: OpLog
-}
+export type OpLog<I> = Step<I>[]
 
-export interface ITimeTravel<T> {
+export interface ITimeTravel<I, T> {
   /**
-   * Switch to another timeline branch
+   * Replace the base branch by the draft branch
    */
-  checkoutBranch(newBranch: any): void;
+  swap(): void;
   /**
-   * Create a branch from the given client step
-   * @param clientStep
+   * Retrieve base branch
    */
-  createBranch(name: string, clientStep: number): Branch;
+  getBaseBranchStep(step: number): Readonly<Step<I> | {
+    timestamp: number;
+    patch: JSONCommand[];
+  }>;
+  /**
+   * Copy a section of the timeline from the given step
+   * and reset the base timeline to the given step.
+   */
+  fork(step: number): void;
   /**
    * Return the current step number
    */
@@ -37,11 +41,14 @@ export interface ITimeTravel<T> {
   /**
    * Add a new step
    */
-  push(patch: Readonly<Patch>): void;
+  push(...steps: Step<I>[]): void;
   /**
    * Return the patch at the given timeline step
    */
-  get(step: number): Patch | { snapshot: T; step: number };
+  get(step: number): Step<I> | {
+    timestamp: number;
+    patch: JSONCommand[];
+  }
   /**
    * Clear the timeline and keep the first element.
    * Replace the initial snapshot and step if given.
@@ -52,4 +59,8 @@ export interface ITimeTravel<T> {
    * All the previous step will be lost.
    */
   rebaseRoot(to: number): void;
+  /**
+   * Return a branch for a given name
+   */
+  getBaseBranch(): OpLog<I>
 }

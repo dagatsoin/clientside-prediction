@@ -38,16 +38,16 @@ export function createDispatcher(
         if (message.data.step > timeTravel.getCurrentStep()) {
           console.info(`${clientId} is behind, fast forward`)
           model.present(actions.applyPatch({
-              patch: message.data.patch
+              commands: message.data.commands
           }))
         }
         // State diverges. Rollback to the server state.
         else if (
-          stringify(message.data.patch) !==
+          stringify(message.data.commands) !==
           stringify(timeTravel.get(message.data.step))
         ) {
           console.info(
-            stringify(message.data.patch),
+            stringify(message.data.commands),
             stringify(timeTravel.get(message.data.step)),
             `Invalid client state at step ${message.data.step}. Reset to step ${
               timeTravel.getInitialStep() as any

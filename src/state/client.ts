@@ -41,7 +41,7 @@ class Representation implements IRepresentation {
     private dispatch: Dispatcher,
     socket: ISocket
   ) {
-    this._timeTravel = createTimeTravel(model.snapshot, {base: 0, opLog: [] });
+    this._timeTravel = createTimeTravel(model.snapshot, {name: this.playerId, rootStep: 0, opLog: [] });
     makeObservable(this, {
       player: computed,
       players: computed

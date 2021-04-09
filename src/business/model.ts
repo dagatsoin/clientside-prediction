@@ -7,7 +7,6 @@ import {
 import {
   IModel,
   World,
-  Patch,
   Proposal,
   IEntity,
   Transform,
@@ -73,20 +72,20 @@ export class Model implements IModel<World, SerializedWorld> {
     this.hydrate(snapshot);
     makeObservable<Model, "_patch">(this, {
       data: observable,
-      patch: computed,
+      commands: computed,
       _patch: observable.shallow,
       present: transaction
     });
   }
   public data: World = { entities: new Map() };
-  public get patch(): Patch {
-    return this._patch.slice();
+  public get commands(): ReadonlyArray<JSONCommand> {
+    return this._commands.slice();
   }
   public get snapshot(): SerializedWorld {
     return { entities: {dataType: "Map", value: Array.from(this.data.entities.entries()) }};
   }
 
-  private _patch: Patch = [];
+  private _commands: JSONCommand[] = [];
 
   /**
    * Populate the world.
@@ -114,7 +113,7 @@ export class Model implements IModel<World, SerializedWorld> {
   }
 
   public present = ({ mutations, shouldRegisterStep = true }: Proposal) => {
-    this._patch = [];
+    this._commands = [];
     for (let mutation of mutations) {
       switch (mutation.type) {
         case BasicMutationType.incBy:
@@ -123,7 +122,7 @@ export class Model implements IModel<World, SerializedWorld> {
             mutation.payload.path,
             mutation.payload.amount
           );
-          this._patch.push(
+          this._commands.push(
             // Don't mess with patch
             Object.freeze({
               op: JSONOperation.replace,
@@ -151,7 +150,7 @@ export class Model implements IModel<World, SerializedWorld> {
             applyJSONCommand(this.data, mutation.payload);
           }
           if (shouldRegisterStep) {
-            this._patch.push(mutation.payload);
+            this._commands.push(mutation.payload);
           }
           break;
       }

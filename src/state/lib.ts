@@ -128,14 +128,14 @@ export function useNap(
       // NAP
 
       autorun(() => {
-        if (model.patch.length) {
-          timeTravel.push(model.patch);
+        if (model.commands.length) {
+          timeTravel.push(model.commands);
         }
       });
   
       // Clean animation
       autorun(() => {
-        model.patch.filter(didStartAnimation).forEach((mutation) => {
+        model.commands.filter(didStartAnimation).forEach((mutation) => {
           setTimeout(
             () =>
               model.present({

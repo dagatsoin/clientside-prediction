@@ -1,6 +1,7 @@
 import { createTimeTravel } from '.';
+import { Intent } from '../actions';
 import { JSONOperation } from '../business/lib/types';
-import { Patch } from '../business/types';
+import { OpLog } from './types';
 
 type Snapshot = {
   entities: string[]
@@ -10,29 +11,27 @@ const snapshot: Snapshot = {
   entities: []
 }
 
-const initialStep: Patch = [
-  {
+const initialOplog: OpLog<Intent> = [{
+  timestamp: 0,
+  intent: {
+    type: "addPlayer",
+    payload: {playerId: "Player0"}
+  },
+  patch: [{
     op: JSONOperation.add,
     path: "/entities/0",
     value: "Player0"
-  }, {
-    op: JSONOperation.add,
-    path: "/entities/1",
-    value: "Player1"
-  }
-]
+  }],
+}]
 
-const timeTraveler = createTimeTravel<Snapshot>(
-  snapshot,
-  {
-    base: 0,
-    opLog: [initialStep]
-  }
+const timeTraveler = createTimeTravel<Intent, Snapshot>(
+  {snapshot, step: 0},
+  [...initialOplog]
 )
 
 beforeEach(function() {
   timeTraveler.reset({step: 0, snapshot})
-  timeTraveler.push(initialStep)
+  timeTraveler.push(...initialOplog)
 })
 
 test("Clear the timeline and keep the first element", function() {
@@ -70,14 +69,21 @@ test("Return the initial snapshot", function() {
   })
 })
 test("Return the snapshot at the given step", function() {
-  expect(timeTraveler.at(2)).toEqual({entities: ["Player0", "Player1"]})
+  expect(timeTraveler.at(2)).toEqual({entities: ["Player0"]})
 })
 test("Add a new step", function() {
-  timeTraveler.push([{
-    op: JSONOperation.add,
-    path: "/entities/2",
-    value: "Player2"
-  }])
+  timeTraveler.push({
+    timestamp: 0,
+    intent: {
+      type: "addPlayer",
+      payload: {playerId: "Player1"}
+    },
+    patch: [{
+      op: JSONOperation.add,
+      path: "/entities/1",
+      value: "Player1"
+    }],
+  })
   expect(timeTraveler.getCurrentStep()).toBe(2)
 })
 test.todo("Return the patch at the given timeline step")

@@ -10,6 +10,7 @@ import {
 import { createSocket, ISocket, nodes } from '../mockedSocket';
 import { createServerRepresentation } from "../state/server";
 import { IServerRepresentation, StepPatch } from "../state/types";
+import { Branch } from '../timeTravel/types';
 import { ClientMessage, ServerMessage } from '../type';
 
 type Input = {
@@ -20,7 +21,7 @@ type Input = {
 
 export interface IServer<T> {
   state: IServerRepresentation
-  present: (proposal: Input) => Promise<void>;
+  present: (proposal: Proposal) => Promise<void>;
 }
 
 function isOutDated(step: number) {
@@ -66,72 +67,79 @@ class Server implements IServer<World> {
     }
     else if (message.type === "intent") {
       const input = message.data
+      // the incoming intent is for a previous step
       if (message.data.step < this.state.step) {
-        if (isAllowedAction(message.data.type)) {
-          if (isComposableAction(message.data.type)) {
-            // Fork the timeline at this point
-            this.state.timeTravel.createBranch(message.data.clientId, message.data.step)
-            // Checkout the new branch
-            this.state.timeTravel.checkoutBranch(message.data.clientId)
-            // Rollback to this branch root
-            this.present({
-              clientId: message.data.clientId,
-              clientStep: message.data.step,
-              proposal: actions.hydrate({snapshot: this.state.timeTravel.at(message.data.step)})
-            }, false)
-            // Trigger the client action
-            this.present({
-              clientId: input.clientId,
-              clientStep: input.step,
-              proposal: actions[input.type](input.payload as any)
-            });
+        if (isAllowedAction(message.data.type, message.data.step)) {
+          // Fork the timeline at this point
+          this.state.timeTravel.fork(message.data.step)
+          // Rollback to this branch root
+          this.present(
+            actions.hydrate({snapshot: this.state.timeTravel.at(message.data.step)}),
+            false
+          )
+          // New intent was triggered before the actual 
+          const baseBranch = this.state.timeTravel.getBaseBranch()
 
-            if (this.model.patch.length) {
-              console.info(`Server step ${message.data.step} was updated, apply delta`);
-              nodes.forEach(({cb, latence}, id) => {
-                if (id !== "server") {
-                  if (id !== input.clientId) {
-                    const data = stringify({
-                      type: "intent",
-                      data: input
-                    })
-                    setTimeout(() => {
-                      cb(new MessageEvent<string>("message", {
-                        data
-                      }))
-                    }, latence)
-                  } else {
-                    setTimeout(() => {
-                      const data = stringify({
-                        type: "patch",
-                        data: {
-                          step: this.state.step,
-                          patch: this.state.patch
-                        }
-                      })
-                      cb(new MessageEvent<string>("message", {
-                        data
-                      }))
-                    }, latence)
-                  }
-                }
-              })
+          if (message.data.timestamp < this.state.timeTravel.get(message.data.step).timestamp) {
+            this.present(actions[input.type](input.payload as any));
+            for (let i = message.data.step + 1; i < baseBranch.length; i++) {
+              const { intent } = baseBranch[i]
+              this.present(actions[intent.type](intent.payload as any));
             }
-            // Rebase the servers state on the new fork
-            //this.state.timeTravel.rebaseRoot()
-            // Send timeline patch 
+          } 
+          // The current intent was triggered before the new instance
+          else {
+            // Cherry pick the corresponding step from the main branch
+            this.state.timeTravel.push(this.state.timeTravel.getBaseBranchStep(message.data.step))
+            // Trigger the new intent
+            this.present(actions[input.type](input.payload as any));
+            for (let i = message.data.step + 2; i < baseBranch.length; i++) {
+              const { intent } = baseBranch[i]
+              this.present(actions[intent.type](intent.payload as any));
+            }
           }
+
+          // Rebase the servers state on the new fork
+          this.state.timeTravel.swap()
+
+          if (this.model.commands.length) {
+            console.info(`Server step ${message.data.step} was updated, apply delta`);
+            nodes.forEach(({cb, latence}, id) => {
+              if (id !== "server") {
+                if (id !== input.clientId) {
+                  const data = stringify({
+                    type: "intent",
+                    data: input
+                  })
+                  setTimeout(() => {
+                    cb(new MessageEvent<string>("message", {
+                      data
+                    }))
+                  }, latence)
+                } else {
+                  setTimeout(() => {
+                    const data = stringify({
+                      type: "patch",
+                      data: {
+                        step: this.state.step,
+                        patch: this.state.patch
+                      }
+                    })
+                    cb(new MessageEvent<string>("message", {
+                      data
+                    }))
+                  }, latence)
+                }
+              }
+            })
+          }        
         }
       } 
       // The client is in sync
       else {
         // Trigger the client action
-        this.present({
-          clientId: input.clientId,
-          clientStep: input.step,
-          proposal: actions[input.type](input.payload as any)
-        });
-        if (this.model.patch.length) {
+        this.present(actions[input.type](input.payload as any));
+        if (this.model.commands.length) {
           console.info(`New server step ${this.state.timeTravel.getCurrentStep()}`);
           nodes.forEach(({cb, latence}, id) => {
             setTimeout(() => {
@@ -162,42 +170,14 @@ class Server implements IServer<World> {
     }
   }
 
-  present = async (input: Input, shouldRegisterStep: boolean = true) => {
-    // If the step is too old (older than the higest client lag, or higher than 200ms)
-   // if (isOutDated(input.clientStep)) return;
-    // If the step is in the past, hydrate the model to the wanted step
-    /* if (this._step > input.clientStep) {
-      const oldState = this.timeTravel.at(input.clientStep);
-      this.model.present(
-        [
-          {
-            type: BasicMutationType.jsonCommand,
-            payload: {
-              op: JSONOperation.replace,
-              path: "/",
-              value: oldState.snapshot
-            }
-          }
-        ],
-        false // Don't keep history of the rollback
-      );
-      // Copy a branch from this old step
-      const newBranch = this.timeTravel.copyBranchFrom(input.clientStep);
-      this.timeTravel.checkoutBranch(newBranch);
-    } */
-    this.model.present(input.proposal, shouldRegisterStep);
+  present = async (proposal: Proposal, shouldRegisterStep: boolean = true) => {
+    this.model.present(proposal, shouldRegisterStep);
   };
 }
 
 export function createServer() {
   return new Server();
 }
-function isAllowedAction(type: Intent["type"]) {
+function isAllowedAction(type: Intent["type"], step: number) {
   return type === "addPlayer"
 }
-
-function isComposableAction(type: Intent["type"]) {
-  return type === "addPlayer"
-}
-
-

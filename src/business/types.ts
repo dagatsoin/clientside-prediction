@@ -4,7 +4,7 @@ import { JSONCommand } from "./lib/types";
 export type IModel<T, S> = {
   readonly id: string;
   readonly data: T;
-  readonly patch: Readonly<Patch>;
+  readonly commands: ReadonlyArray<JSONCommand>;
   readonly snapshot: S;
   present: Present;
 };
@@ -83,4 +83,11 @@ export type Proposal = {
   mutations: Mutations
 };
 
-export type Patch = JSONCommand[];
+export type Step<I> = {
+  /**
+   * The time elapsed from the current step
+   */
+  intent: I
+  timestamp: number
+  patch: JSONCommand[]
+};

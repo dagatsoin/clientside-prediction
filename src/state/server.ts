@@ -1,6 +1,6 @@
 import { makeObservable, computed } from 'mobx';
 import { JSONOperation } from '../business/lib/types';
-import { IModel, Patch, SerializedWorld, World } from '../business/types';
+import { IModel, Step, SerializedWorld, World } from '../business/types';
 import { createTimeTravel } from '../timeTravel';
 import { ITimeTravel } from '../timeTravel/types';
 import { updatePlayersRepresentation, useNap } from './lib';
@@ -12,7 +12,7 @@ class Representation implements IServerRepresentation {
   constructor(
     private model: IModel<World, SerializedWorld>
   ) {
-    this.timeTravel = createTimeTravel(model.snapshot, {base: 0, opLog: [] });
+    this.timeTravel = createTimeTravel(model.snapshot, {name: "server", rootStep: 0, opLog: [] });
     makeObservable<this, "players">(this, {
       players: computed,
       step: computed
@@ -33,7 +33,7 @@ class Representation implements IServerRepresentation {
     return updatePlayersRepresentation(this._players, this.model)
   }
   
-  get patch(): Patch {
+  get patch(): Step {
     const data = this.timeTravel.get(this.timeTravel.getCurrentStep())
     return isTimelineRoot(data)
       ? [{ op: JSONOperation.replace, path: "/", value: data }]
@@ -41,7 +41,7 @@ class Representation implements IServerRepresentation {
   };
 }
 
-function isTimelineRoot(data: Patch | {
+function isTimelineRoot(data: Step | {
   snapshot: SerializedWorld;
   step: number;
 }): data is {

@@ -1,76 +1,108 @@
 import { applyJSONCommand } from "../business/lib/acceptors";
 import { JSONCommand } from "../business/lib/types";
-import { Patch } from "../business/types";
-import { ITimeTravel, Branch } from "./types";
+import { Step } from "../business/types";
+import { ITimeTravel, OpLog } from "./types";
 
-function getPatchTo(timeline: Branch, to: number): Patch {
-  const index = to - timeline.base;
-  const patch: JSONCommand[] = [];
-  for (let i = 0; i < index; i++) {
-    patch.push(...(timeline.opLog[i] as Patch));
+function getPatchTo(timeline: OpLog<any>, opLogIndex: number): JSONCommand[] {
+  const commands: JSONCommand[] = [];
+  for (let i = 0; i < opLogIndex; i++) {
+    commands.push(...(timeline[i].patch));
   }
-  return patch;
+  return commands
 }
 
-class TimeTravel<S> implements ITimeTravel<S> {
-  constructor(private snapshot: S, private timeline: Branch){}  
-  checkoutBranch(newBranch: any): void {
-    throw new Error("Method not implemented.");
+class TimeTravel<I, S> implements ITimeTravel<I, S> {
+  constructor(private initialState: {
+    snapshot: S
+    step: number
+  }, private timeline: OpLog<I>){}
+  
+  private nextBranch: OpLog<I> | undefined
+
+  swap(): void {
+    if (this.nextBranch) {
+      this.timeline = this.nextBranch
+      this.nextBranch = undefined
+    }
   }
-  createBranch(name: string, clientStep: number): Branch {
-    throw new Error("Method not implemented.");
+
+  fork(step: number) {
+    // Don't mess with the base timeline
+    Object.freeze(this.timeline)
+    this.nextBranch = this.timeline.slice(step - this.initialState.step) as OpLog<I>
+  }
+  
+  getBaseBranch(): OpLog<I> {
+    return this.timeline
+  }
+
+  getBaseBranchStep(step: number): Readonly<Step<I> | {
+    timestamp: number;
+    patch: JSONCommand[];
+  }> {
+    return this.timeline[step - this.initialState.step]
   }
 
   getCurrentStep() {
-    return this.timeline.base + this.timeline.opLog.length;
+    return this.initialState.step + this.timeline.length;
   }
 
   getInitialStep() {
-    return this.timeline.base;
+    return this.initialState.step;
   }
 
   getInitalSnapshot() {
-    return this.snapshot;
+    return this.initialState.snapshot;
   }
 
   at(step: number) {
     // Cap the step to the current step to prevent overflow
     const _step = Math.min(step, this.getCurrentStep())
-    const snapshot = { ...this.snapshot };
-    getPatchTo(this.timeline, _step).map((command) =>
+    const snapshot = { ...this.initialState.snapshot };
+    getPatchTo(this.timeline, _step - this.initialState.step).map((command) =>
       applyJSONCommand(snapshot, command)
     );
     return snapshot
   }
 
-  get(step: number): Patch | { snapshot: S; step: number } {
-    const index = step - this.timeline.base;
-    return this.timeline.opLog[index];
+  get(step: number): 
+   | Step<I>
+   | {
+      timestamp: number;
+      patch: JSONCommand[];
+    } {
+    const index = step - this.initialState.step;
+    return this.timeline[index];
   }
 
   reset(initialState?: { step: number, snapshot: S }) {
     if (initialState) {
-      this.snapshot = initialState.snapshot
-      this.timeline.base = initialState.step
+      this.initialState = { ...initialState }
     }
-    this.timeline.opLog.splice(0);
+    this.timeline.splice(0);
   }
 
-  push(patch: Readonly<Patch>) {
-    this.timeline.opLog.push(patch as any);
+  push(...steps: Step<I>[]) {
+    this.timeline.push(...steps);
   }
 
   rebaseRoot(to: number) {
-    this.snapshot = this.at(to),
-    this.timeline.base = to
-    const deleteCount = to - this.timeline.base + 1;
-    this.timeline.opLog.splice(0, deleteCount);
+    const oldInitialState = this.initialState.step
+    this.initialState = {
+      snapshot: this.at(to),
+      step: to
+    }
+    const deleteCount = to - oldInitialState + 1;
+    this.timeline.splice(0, deleteCount);
   }
 }
 
-export function createTimeTravel<S>(
-  initialSnapshot: S,
-  mainBranch: Branch
-): ITimeTravel<S> {
-  return new TimeTravel(initialSnapshot, mainBranch);
+export function createTimeTravel<I, S>(
+  initialState: {
+    snapshot: S,
+    step: number
+  },
+  initialOpLog: OpLog<I>
+): ITimeTravel<I, S> {
+  return new TimeTravel(initialState, initialOpLog);
 }
