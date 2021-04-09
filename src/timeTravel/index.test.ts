@@ -146,7 +146,8 @@ test("Modify the past", function() {
       value: "Player2"
     }],
   })
-  timeTraveler.modifyPast(1, function(oldBranch, newTimeline) {
+  timeTraveler.modifyPast(2, function(oldBranch, newTimeline) {
+    expect(oldBranch.length).toBe(1)
     expect(newTimeline.length).toBe(2)
 
     newTimeline.push({
@@ -157,7 +158,7 @@ test("Modify the past", function() {
       },
       patch: [{
         op: JSONOperation.add,
-        path: "/entities/1",
+        path: "/entities/2",
         value: "HPBPlayer"
       }],
     }, {
@@ -168,14 +169,14 @@ test("Modify the past", function() {
       },
       patch: [{
         op: JSONOperation.add,
-        path: "/entities/2",
+        path: "/entities/3",
         value: "Player2"
-      }],
+      }]
     })
   })
   
   expect(timeTraveler.getCurrentStep()).toBe(4)
-  expect(timeTraveler.at(3)).toEqual({
+  expect(timeTraveler.at(4)).toEqual({
     entities: ["Player0", "Player1", "HPBPlayer", "Player2"]
   })
 })

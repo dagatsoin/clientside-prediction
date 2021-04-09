@@ -21,11 +21,11 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
   private baseBranch: OpLog<I> | undefined
   
   modifyPast(step: number, transaction: (baseBranch: Readonly<OpLog<I>>, newBranch: OpLog<I>) => void) {
-    if (step - this.initialState.step + 1 >= this.timeline.length) {
+    if (step - this.initialState.step >= this.timeline.length) {
       console.warn("can't fork at step", step)
     }
     // Don't mess with the base timeline
-    this.baseBranch = this.timeline.splice(step - this.initialState.step + 1)
+    this.baseBranch = this.timeline.splice(step - this.initialState.step)
     Object.freeze(this.baseBranch)
     transaction(this.baseBranch, this.timeline)
     this.baseBranch = undefined
