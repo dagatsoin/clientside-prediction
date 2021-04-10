@@ -69,8 +69,7 @@ export type World = {
 };
 
 export type Present = (
-  proposal: Proposal,
-  shouldRegisterStep?: boolean
+  proposal: Proposal
 ) => void;
 
 export type Proposal = {

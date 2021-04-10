@@ -1,6 +1,5 @@
 import { Intent } from './actions';
 import { SerializedWorld } from './business/types';
-import { StepPatch } from './state/types';
 import { Timeline } from './timeTravel/types';
 
 export enum ControlState {
@@ -14,8 +13,9 @@ export type State = {
 };
 
 export type ServerMessage =
- | { type: "patch", data: StepPatch }
+ | { type: "rollback", data: { to: number, timeline: Timeline<Intent> } }
  | { type: "intent", data: ({ clientId: string, stepId: number } & Intent) }
+ | { type: "reduce", data: { to: number } }
  | { type: "sync", data: { stepId: number, snapshot: SerializedWorld } }
 
  export type ClientMessage =

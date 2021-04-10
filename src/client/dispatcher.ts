@@ -27,61 +27,66 @@ export function createDispatcher(
       // Use native parser to keep the serialized map
       const message: ServerMessage = JSON.parse(messageEvent.data)
       const { timeTravel } = getState();
-      // The server is ahead, resync client
+      /**
+       * The server sent a sync command.
+       * Drop the timeline and sync the client with the server by applying the given snapshot.
+       */ 
       if (message.type === "sync") {
-        // TODO reset on server initial snapshot and replay actions in a different timeline. Apply changes only if diff.
         timeTravel.reset({
           stepId: message.data.stepId,
           snapshot: message.data.snapshot
         })
-        model.present(actions.hydrate({ snapshot: message.data.snapshot }), false)
-      } else if (message.type === "intent") {
+        model.present(actions.hydrate({ snapshot: message.data.snapshot, shouldRegisterStep: false }))
+      }
+      /**
+       * The server is ahead of one step.
+       * Sync the client by perfoming the given action.
+       */ 
+      else if (message.type === "intent") {
         model.present(actions[message.data.type](message.data.payload as any))
-      } else if (message.type === "patch") {
-        console.log(`${clientId} received data from server step ${message.data.stepId}`);
-        // Fast forward: resync client to the server step
-        if (message.data.stepId > timeTravel.getCurrentStepId()) {
-          console.info(`${clientId} is behind, fast forward`)
-          model.present(actions.applyPatch({
-              commands: message.data.patch
-          }))
-        }
-        // State diverges. Rollback to the server state.
-        else if (
-          stringify(message.data.patch) !==
-          stringify(timeTravel.get(message.data.stepId).patch)
-        ) {
-          console.info(
-            stringify(message.data.patch),
-            stringify(timeTravel.get(message.data.stepId)),
-            `Invalid client state at step ${message.data.stepId}. Reset to step ${
-              timeTravel.getInitialStep()
-            }`,
-            stringify(timeTravel.getInitalSnapshot())
-          );
-          timeTravel.reset();
-          model.present(actions.hydrate({
-            snapshot: timeTravel.getInitalSnapshot(),
-            shouldRegisterStep: false
-          }));
-        }
-        // Client and server states are the same. Rebase the client root
-        // to the server step.
-        else {
-          timeTravel.rebaseRoot(message.data.stepId);
-          console.log(
-            `Rebase ${clientId} state on server step ${timeTravel.getInitialStep()}`
-          );
-        }
+      }
+      /**
+       * The past changed. Sync the client to the server state
+       * by doing a travel in the past and the apply of a new timeline.
+       */
+      else if (message.type === "rollback") {
+        // Merge the server timeline in the local timeline.
+        timeTravel.modifyPast(message.data.to, function (oldBranch, newBranch) {
+          newBranch.push(...message.data.timeline)
+        })
+        // Rollback the model
+        model.present(actions.hydrate({snapshot: timeTravel.at(message.data.to)}))
+        // Replay the new section of the timeline by applying patch
+        const patch = timeTravel.getPatchFromTo(message.data.to, timeTravel.getCurrentStepId())
+        model.present(actions.applyPatch({commands: patch}))
+      }
+      /**
+       * All the nodes have consencus on the past. Reduce the common step
+       * as a snapshot.
+       * That means there won't be ever any past modification before this step.
+       */
+      else if (message.type === "reduce") {
+        timeTravel.rebaseRoot(message.data.to)
       }
     },
     dispatch(intent: Intent) {
       const { stepId: cStep, timeTravel } = getState();
       // Backup intent to write the next step
-      timeTravel.lastIntent = {...intent}
-      const step = cStep;
-      send(stringify({type: "intent", data: { clientId, step, ...intent }}));
+      timeTravel.startStep(intent)
+      const stepId = cStep;
+      send(stringify({type: "intent", data: {
+        timestamp: timeTravel.getLocalDeltaTime(),
+        clientId,
+        stepId,
+        ...intent
+      }}));
       model.present(actions[intent.type](intent.payload as any));
+      if (model.patch.length) {
+        timeTravel.commitStep({
+          timestamp: timeTravel.getLocalDeltaTime(),
+          patch: model.patch
+        });
+      }
     }
   };
 }

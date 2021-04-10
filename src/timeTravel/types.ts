@@ -4,9 +4,28 @@ import { Step } from "../business/types";
 export type Timeline<I> = Step<I>[]
 
 export interface ITimeTravel<I, T> {
-  lastIntent: I
   /**
-   * Start a transaction to modify the past at the given stepId
+   * Start a step which can be still aborted.
+   * This will prepare a new object with the triggered intent.
+   */
+  startStep(intent: I): void;
+  /**
+   * Use this function to cancel a step.
+   * It will clean the temporary new step
+   */
+  abortStep(): void
+  /**
+   * Add a step to the timeline.
+   * The step is composed by the temporary object
+   * containing the intent, the timestamp and the patch
+   */
+  commitStep(data:{
+    timestamp: number
+    patch: ReadonlyArray<JSONCommand>
+  }): void
+  /**
+   * Start a transaction to modify the past at the given stepId.
+   * Return the modified segment.
    */
   modifyPast(stepId: number, transaction: (oldBranch: Readonly<Timeline<I>>, newTimeline: Timeline<I>) => void): Timeline<I>
   /**
@@ -21,6 +40,10 @@ export interface ITimeTravel<I, T> {
    * Return the initial snapshot
    */
   getInitalSnapshot(): T;
+  /**
+   * Return the time elapsed since the start of the current step
+   */
+   getLocalDeltaTime(): number
   /**
    * Return the snapshot at the given stepId
    */
@@ -38,6 +61,10 @@ export interface ITimeTravel<I, T> {
     timestamp: number;
     patch: ReadonlyArray<JSONCommand>;
   }
+  /**
+   * Return all the commands to go from a step to another step.
+   */
+  getPatchFromTo(from: number, to: number): ReadonlyArray<JSONCommand>;
   /**
    * Clear the timeline and keep the first element.
    * Replace the initial snapshot and step if given.

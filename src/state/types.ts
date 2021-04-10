@@ -24,8 +24,3 @@ export interface IPlayer {
   name: string;
   position: Position;
 }
-
-export type StepPatch = {
-  stepId: number
-  patch: ReadonlyArray<JSONCommand>
-}

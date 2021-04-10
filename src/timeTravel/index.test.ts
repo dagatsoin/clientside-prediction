@@ -1,4 +1,4 @@
-import { createTimeTravel, getPatchTo } from '.';
+import { createTimeTravel } from '.';
 import { Intent } from '../actions';
 import { JSONOperation } from '../business/lib/types';
 import { Timeline } from './types';
@@ -38,6 +38,13 @@ test("Clear the timeline and keep the first element", function() {
   timeTraveler.reset({stepId: 1, snapshot: { entities: ["Player0"] }})
   expect(timeTraveler.getCurrentStepId()).toBe(1)
   expect(timeTraveler.getInitalSnapshot()).toEqual({ entities: ["Player0"] })
+})
+
+describe("Time between step", function() {
+  test.todo("There is 100ms between initial snapshot and first step")
+  test.todo("There is 100ms between step 1 and pushed step")
+  test.todo("Reseting timeline reset the timer")
+  test.todo("Modify the past reset the timer")
 })
 
 test("Return the current step number", function() {
@@ -82,7 +89,7 @@ test("Return the patch at the given timeline step", function() {
       value: "Player1"
     }],
   })
-  expect(getPatchTo(timeTraveler.getBaseBranch(), 2)).toEqual([
+  expect(timeTraveler.getPatchFromTo(timeTraveler.getInitialStep(), 2)).toEqual([
     {
       op: JSONOperation.add,
       path: "/entities/0",

@@ -126,17 +126,6 @@ export function useNap(
   model: IModel<World, SerializedWorld>,
   timeTravel: ITimeTravel<Intent, SerializedWorld>
 ) {
-      // NAP
-      autorun(() => {
-        if (model.patch.length) {
-          timeTravel.push({
-            intent: {...timeTravel.lastIntent},
-            timestamp: Date.now(),
-            patch: model.patch
-          });
-        }
-      });
-  
       // Clean animation
       autorun(() => {
         model.patch.filter(didStartAnimation).forEach((mutation) => {
