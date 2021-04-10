@@ -4,6 +4,7 @@ import { SerializedWorld } from "../business/types";
 import { createClientRepresentation } from "../state/client";
 import { actions } from "../actions";
 import { ISocket } from '../mockedSocket';
+import { createDispatcher } from './dispatcher';
 
 const playerId = "fraktar";
 const snapshot: SerializedWorld = {
@@ -26,25 +27,27 @@ const snapshot: SerializedWorld = {
 };
 const model = createModel(playerId, snapshot);
 const state = createClientRepresentation(model, () => {}, {} as ISocket);
+const {dispatch} = createDispatcher("fraktar", model, () => state, () => {})
 const { player } = state;
 it("should instantaly move to left", function () {
-  model.present({
-    mutations: [
-      {
-        type: BasicMutationType.jsonCommand,
-        payload: {
-          op: JSONOperation.replace,
-          path: "entities/fraktar/transform/position/initial/x",
-          value: 10
-        }
-      }
-    ]
-  });
+  dispatch({
+    type: "applyPatch",
+    payload: {
+      commands: [{
+        op: JSONOperation.replace,
+        path: "entities/fraktar/transform/position/initial/x",
+        value: 10
+      }]
+    }
+  })
   expect(player.position.x).toBe(10);
   expect(state.stepId).toBe(1);
 });
 it("should translate on left in 100ms", function (done) {
-  model.present(actions.translateRight({ playerId, delta: 10 }));
+  dispatch({
+    type: "translateRight",
+    payload: { playerId, delta: 10 }
+  })
   setTimeout(function () {
     try {
       expect(state.stepId).toBe(3);

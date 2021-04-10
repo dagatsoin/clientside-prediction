@@ -126,11 +126,22 @@ export function useNap(
   model: IModel<World, SerializedWorld>,
   timeTravel: ITimeTravel<Intent, SerializedWorld>
 ) {
+      // NAP
+      autorun(() => {
+        if (model.patch.length) {
+          timeTravel.commitStep({
+            timestamp: timeTravel.getLocalDeltaTime(),
+            patch: model.patch
+          });
+        }
+      });
+  
       // Clean animation
       autorun(() => {
         model.patch.filter(didStartAnimation).forEach((mutation) => {
           setTimeout(
-            () =>
+            () => {
+              timeTravel.startStep({}as any)
               model.present({
                 mutations: [
                   {
@@ -159,7 +170,7 @@ export function useNap(
                 ]
               }),
             mutation.value.duration
-          );
+          });
         });
       });
 }

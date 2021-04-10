@@ -55,7 +55,7 @@ export function createDispatcher(
           newBranch.push(...message.data.timeline)
         })
         // Rollback the model
-        model.present(actions.hydrate({snapshot: timeTravel.at(message.data.to)}))
+        model.present(actions.hydrate({snapshot: timeTravel.at(message.data.to), shouldRegisterStep: false }))
         // Replay the new section of the timeline by applying patch
         const patch = timeTravel.getPatchFromTo(message.data.to, timeTravel.getCurrentStepId())
         model.present(actions.applyPatch({commands: patch}))
@@ -81,12 +81,6 @@ export function createDispatcher(
         ...intent
       }}));
       model.present(actions[intent.type](intent.payload as any));
-      if (model.patch.length) {
-        timeTravel.commitStep({
-          timestamp: timeTravel.getLocalDeltaTime(),
-          patch: model.patch
-        });
-      }
     }
   };
 }

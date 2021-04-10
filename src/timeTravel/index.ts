@@ -26,7 +26,7 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
   }
   commitStep(data: { timestamp: number; patch: readonly JSONCommand[]; }): void {
     if (!this.newIntent) {
-      throw new Error('Intent not found while commiting step. You need to start a step by using startStep.');
+      return
     }
     this.push({intent: this.newIntent, ...data})
     this.newIntent = undefined

@@ -165,12 +165,6 @@ class Server implements IServer<World> {
   dispatch = async (intent: Intent) => {
     this.state.timeTravel.startStep(intent)
     this.model.present(actions[intent.type](intent.payload as any));
-    if (this.model.patch.length) {
-      this.state.timeTravel.commitStep({
-        timestamp: this.state.timeTravel.getLocalDeltaTime(),
-        patch: this.model.patch
-      });
-    }
   };
 }
 
