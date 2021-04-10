@@ -40,13 +40,6 @@ test("Clear the timeline and keep the first element", function() {
   expect(timeTraveler.getInitalSnapshot()).toEqual({ entities: ["Player0"] })
 })
 
-describe("Time between step", function() {
-  test.todo("There is 100ms between initial snapshot and first step")
-  test.todo("There is 100ms between step 1 and pushed step")
-  test.todo("Reseting timeline reset the timer")
-  test.todo("Modify the past reset the timer")
-})
-
 test("Return the current step number", function() {
   expect(timeTraveler.getCurrentStepId()).toBe(1)
 })
@@ -61,21 +54,62 @@ test("Return the initial snapshot", function() {
 test("Return the snapshot at the given step", function() {
   expect(timeTraveler.at(1)).toEqual({entities: ["Player0"]})
 })
-test("Add a new step", function() {
-  timeTraveler.push({
-    timestamp: 0,
-    intent: {
+describe("Add a new step", function() {
+  test("By commit", function() {
+    timeTraveler.startStep( {
       type: "addPlayer",
-      payload: {playerId: "Player1"}
-    },
-    patch: [{
-      op: JSONOperation.add,
-      path: "/entities/1",
-      value: "Player1"
-    }],
+      payload: {playerId: "Player2"}
+    })
+    
+    timeTraveler.commitStep({
+      timestamp: timeTraveler.getLocalDeltaTime(),
+      patch: [{
+        op: JSONOperation.add,
+        path: "/entities/1",
+        value: "Player1"
+      }]
+    })
+    expect(timeTraveler.getCurrentStepId()).toBe(2)
   })
-  expect(timeTraveler.getCurrentStepId()).toBe(2)
+  test("By push", function() {
+    timeTraveler.push({
+      timestamp: 0,
+      intent: {
+        type: "addPlayer",
+        payload: {playerId: "Player1"}
+      },
+      patch: [{
+        op: JSONOperation.add,
+        path: "/entities/1",
+        value: "Player1"
+      }],
+    })
+    expect(timeTraveler.getCurrentStepId()).toBe(2)
+  })
 })
+
+test("Step timestamp", function(done){
+  setTimeout(function() {
+    timeTraveler.push({
+      timestamp: timeTraveler.getLocalDeltaTime(),
+      intent: {
+        type: "addPlayer",
+        payload: {playerId: "Player1"}
+      },
+      patch: [{
+        op: JSONOperation.add,
+        path: "/entities/1",
+        value: "Player1"
+      }],
+    })
+    const timestamp = timeTraveler.get(2).timestamp
+    // Lets take a big marge.
+    expect(timestamp ).toBeLessThan(200)
+    expect(timestamp ).toBeGreaterThanOrEqual(100)
+    done()
+  }, 100)
+})
+
 test("Return the patch at the given timeline step", function() {
   timeTraveler.push({
     timestamp: 0,
