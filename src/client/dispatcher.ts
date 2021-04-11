@@ -43,6 +43,7 @@ export function createDispatcher(
        * Sync the client by perfoming the given action.
        */ 
       else if (message.type === "intent") {
+        timeTravel.startStep(message.data)
         model.present(actions[message.data.type](message.data.payload as any))
       }
       /**

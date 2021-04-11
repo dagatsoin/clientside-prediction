@@ -52,13 +52,13 @@ describe("Server sends a sync command", function() {
     }, getLatenceOf(players[0].state.playerId))
   })
 })
-/*
-describe("Basic cases", function() {
+
+/* describe("Basic cases", function() {
   test.todo("Server confirms client step")
   test.todo("Server fixes client step")
   test.todo("Server modifies past")
   test.todo("Server send new step")
-})
+}) */
  
 describe("Create a room", function() {
   let players: IClient[] = [];
@@ -88,11 +88,14 @@ describe("Create a room", function() {
 
   test("Players are sync with the server", function() {
     setTimeout(function(){
+      expect(players[0].state.stepId).toBe(3)
+      expect(players[1].state.stepId).toBe(3)
+      expect(players[2].state.stepId).toBe(3)
       expect(server.state.stepId).toBe(3)
     }, ping)
   })
 })
-*/
+
 describe("Move animation without interruption", function () {
   let players: IClient[] = [];
   let server: IServer<any>
@@ -109,10 +112,10 @@ describe("Move animation without interruption", function () {
     disconnectAll()
   })
   
-  test("P0 - Step 0: Player0 should be at 0", function () {
+  test("P0 - Step 3: Player0 should be at 0", function () {
     expect(players[0].state.player.position.x).toBe(0)
   });
-  test("P0 - Step 1: should start translating to left", function (done) {
+  test("P0 - Step 4: should start translating to left", function (done) {
     players[0].dispatch({
       type: "translateRight",
       payload: {
@@ -120,7 +123,22 @@ describe("Move animation without interruption", function () {
         delta: 10
       }
     });
+    // Local player should start animation
+    expect(
+      players[0].state.timeTravel.at(4).entities.value[0][1].transform
+        .position.animation.x
+    ).toBeDefined();
+    
+    // Server received the start animation intent
     setTimeout(function () {
+      expect(
+        server.state.timeTravel.at(4).entities.value[0][1].transform
+          .position.animation.x
+      ).toBeDefined();
+      done()
+    }, ping/2)
+    // Local player has finished animation
+    /* setTimeout(function () {
       try {
         expect(players[0].state.stepId).toBe(4);
         expect(
@@ -131,21 +149,11 @@ describe("Move animation without interruption", function () {
       } catch (e) {
         done(e);
       }
-    }, ping);
+    }, 100); // May break, this is hardcoded animation timing
+    */
   });
-  test.todo("Server - Step 1: should start translating P0 to left");
-  test.todo("P0 - Step 1: should receive same result for Step 1 state");
-  test.todo("P1 - Step 1: should start translating P0 to left");
-  test.todo("P0 - Step 2: should end translating to left");
-  test.todo("P1 - Step 1: should start translating P0 to left");
-  test.todo("P0 - Step 1: timeline root should be now set at Step 1");
-  test.todo("Server - Step 2: should end translating to left");
-  test.todo("P0 - Step 2: timeline root should be now set at Step 2");
-  test.todo("P1 - Step 1: timeline root should be now set at Step 1");
-  test.todo("P1 - Step 2: should end translating P0 to left");
-  test.todo("P1 - Step 1: timeline root should be now set at Step 2");
-});/*
-
+});
+/* 
 describe("Move animation with interruption from another player", function () {
   test.todo("P1 - Step 1: hit P0");
   test.todo("P0 - Step 1: should start to translate to left");
