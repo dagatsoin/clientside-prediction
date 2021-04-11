@@ -21,7 +21,10 @@ class Socket implements ISocket {
     nodes.set(id, {
       latence,
       // simulate network latency
-      cb: (message: MessageEvent<any>) => setTimeout(() => this.onmessage(message), latence)
+      cb: (message: MessageEvent<any>) => {
+        const currentLatence = nodes.get(id)?.latence
+        setTimeout(() => this.onmessage(message), currentLatence)
+      }
     })
   }
   onclose = (ev: CloseEvent) => {
