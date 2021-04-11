@@ -96,7 +96,7 @@ describe("Create a room", function() {
   })
 })
 
-describe("Move animation without interruption", function () {
+describe("Move animation", function () {
   let players: IClient[] = [];
   let server: IServer<any>
   let ping: number = 0
@@ -186,7 +186,7 @@ describe("Move animation without interruption", function () {
  * The server will simply compare who was the fatest to respond to the new step.
  */
 
-describe("Move animation with interruption from another player", function () {
+describe("Han moved first", function () {
   let players: IClient[] = [];
   let ping: number = 0
 
