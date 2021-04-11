@@ -4,27 +4,32 @@ import { render } from "react-dom";
 import { init } from "./client";
 import { IClient } from "./client/types";
 import { Game } from "./Game";
-import { createServerConnector, Mode } from "./server";
+import { nodes } from './mockedSocket';
+import { createServer } from './server';
 
-async function deployAndRun(names: string[], mode: Mode): Promise<IClient[]> {
-  if (!names.length) return [];
-  // Create server
-  const serverSlot = createServerConnector()
-
-  // Create players
+async function deployAndRun(names: string[]): Promise<IClient[]> {
   const players: IClient[] = [];
-  for (const name of names) {
-    players.push((await init(name, serverSlot)).client);
-  }
   
+  // Create server
+  createServer()
+  
+  // Create players
+  for (let i = 0; i < names.length; i++) {
+    players.push((await init(names[i])));
+  }
+
   // Connect clients
-  players.forEach(player => player.dispatch({type: "addPlayer", payload: { playerId: player.state.playerId }}))
+  players.forEach(player => {
+    player.dispatch({type: "addPlayer", payload: { playerId: player.state.playerId }})
+  })
+
+  nodes.get(names[0])!.latence = 300
+  nodes.get(names[1])!.latence = 30
 
   return players;
 }
 
 const App = observer(function () {
-  const [serverMode, setServerMode] = React.useState<Mode>("offline");
   const [clients, setClients] = React.useState<IClient[]>([]);
   const [names, setName] = React.useState<[string, string]>([
     "Player1",
@@ -34,7 +39,7 @@ const App = observer(function () {
   // TODO make possible to create game with one player then
   // that the other players joins the game
   return clients.length ? (
-    <Game {...clients[0]} />
+    <Game state={clients[0].state} dispatch={clients[0].dispatch} />
   ) : (
     <div
       style={{
@@ -45,24 +50,6 @@ const App = observer(function () {
         flexDirection: "column"
       }}
     >
-      <div>
-        <label htmlFor="serverMode">Play online</label>
-        <input
-          id="serverMode"
-          type="checkbox"
-          onChange={function (event) {
-            setServerMode(event.target.checked ? "online" : "offline");
-          }}
-        />
-        {serverMode === "online" && (
-          <p>
-            The server is hosted on codesandbox and may hybernate. If nothing
-            happens, go to <a href="https://unydm.sse.codesandbox.io/">here</a>{" "}
-            to wake it up, wait 30s, and retry.
-          </p>
-        )}
-      </div>
-
       <div style={{ display: "flex", flexDirection: "row" }}>
         <input
           style={{ marginRight: "10px" }}
@@ -76,7 +63,7 @@ const App = observer(function () {
       </div>
       <button
         onClick={function () {
-          deployAndRun(names, serverMode).then(setClients);
+          deployAndRun(names).then(setClients);
         }}
       >
         Create game
