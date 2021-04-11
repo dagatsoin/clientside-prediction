@@ -185,16 +185,15 @@ describe("Move animation without interruption", function () {
  * Greedo shot Han 100ms after receiving the step.
  * The server will simply compare who was the fatest to respond to the new step.
  */
+
 describe("Move animation with interruption from another player", function () {
   let players: IClient[] = [];
-  let server: IServer<any>
   let ping: number = 0
 
   beforeAll(async () => {
     const infra = (await startInfra(2));
     nodes.get("Player0")!.latence = 300
     nodes.get("Player1")!.latence = 30
-    server = infra.server
     players = infra.players
     ping = getPing(players)
   });
@@ -237,6 +236,66 @@ describe("Move animation with interruption from another player", function () {
       expect(players[0].state.stepId).toBe(6)
       expect(players[1].state.stepId).toBe(6)
       expect(players[0].state.player.isAlive).toBeTruthy()
+      expect(players[1].state.player.ammo).toBe(0)
+      done()
+    }, ping + 140)
+  })
+});
+
+describe("Han shot first", function () {
+  let players: IClient[] = [];
+  let server: IServer<any>
+  let ping: number = 0
+
+  beforeAll(async () => {
+    const infra = (await startInfra(2));
+    nodes.get("Player0")!.latence = 300
+    nodes.get("Player1")!.latence = 30
+    server = infra.server
+    players = infra.players
+    ping = getPing(players)
+  });
+
+  afterAll(function() {
+    disconnectAll()
+  })
+  test("Initial state", function() {
+    expect(players[0].state.player.position.x).toBe(0)
+    expect(players[1].state.player.position.x).toBe(0)
+  })
+  test("Check process", function(done) {
+    // Setup the scene, place players 
+    players[0].dispatch({
+      type: "moveUp",
+      payload: {
+        playerId: players[0].state.playerId,
+      }
+    });
+    // Han shot first
+    players[1].dispatch({
+      type: "shot",
+      payload: {
+        shoter: players[1].state.playerId,
+        from: players[1].state.players.find(({id})=> id === players[1].state.playerId)!.position,
+        direction: [0, 1]
+      }
+    });
+    
+    // Too slow Greedo.
+    setTimeout(function() {
+      players[0].dispatch({
+        type: "translateRight",
+        payload: {
+          playerId: players[0].state.playerId,
+          delta: 10
+        }
+      });
+    }, 40)
+      
+    setTimeout(function() {
+      expect(players[0].state.stepId).toBe(6)
+      expect(players[1].state.stepId).toBe(6)
+      expect(players[0].state.player.isAlive).toBeFalsy()
       expect(players[1].state.player.ammo).toBe(0)
       done()
     }, ping + 140)

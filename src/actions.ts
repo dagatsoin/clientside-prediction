@@ -54,7 +54,7 @@ const moveUp = ({ playerId }: { playerId: string }): Proposal => ({
   mutations: [
     {
       type: BasicMutationType.incBy,
-      payload: { path: `/entities/${playerId}/y`, amount: 1 }
+      payload: { path: `/entities/${playerId}/transform/position/initial/y`, amount: 1 }
     }
   ]
 });
@@ -63,7 +63,7 @@ const moveLeft = ({ playerId }: { playerId: string }): Proposal => ({
   mutations: [
     {
       type: BasicMutationType.decBy,
-      payload: { path: `/entities/${playerId}/x`, amount: 1 }
+      payload: { path: `/entities/${playerId}/transform/position/initial/x`, amount: 1 }
     }
   ]
 });

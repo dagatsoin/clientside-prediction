@@ -22,6 +22,7 @@ import {
 } from "./lib/types";
 import { applyJSONCommand, increment } from "./lib/acceptors";
 import { MutationType } from './acceptors';
+import { getCurrentPosition } from './animation';
 
 type ISerializable<T> = { hydrate(snapshot: T): void };
 
@@ -149,9 +150,14 @@ export class Model implements IModel<World, SerializedWorld> {
           const hitScanVector: Vector2D = mutation.payload.direction
           const localOrigin = mutation.payload.from
           this.data.entities.forEach((entity) => {
+            const entityPosition = getCurrentPosition(
+              Date.now(),
+              entity.transform.position.initial,
+              entity.transform.position.animation
+            )
             const targetVector: Vector2D = [
-              entity.transform.position.initial.x - localOrigin.x,
-              entity.transform.position.initial.y - localOrigin.y
+              entityPosition.x - localOrigin.x,
+              entityPosition.y - localOrigin.y
             ]
             const angle = Math.atan2(hitScanVector[1] - targetVector[1], hitScanVector[0] - targetVector[0]) * 180 / Math.PI;
             if (angle === 0) {
