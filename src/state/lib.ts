@@ -75,6 +75,12 @@ class Player implements IPlayer {
   get name() {
     return this.entity.name;
   }
+  get isAlive() {
+    return this.entity.isAlive;
+  }
+  get ammo() {
+    return this.entity.ammo;
+  }
   get position() {
     const now = Date.now();
     const { animation, initial } = this.entity.transform.position;
@@ -100,6 +106,8 @@ class Player implements IPlayer {
     makeObservable<this, "animationTransforms">(this, {
       animationTransforms: computed,
       name: computed,
+      ammo: computed,
+      isAlive: computed,
       position: computed
     });
   }

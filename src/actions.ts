@@ -1,9 +1,10 @@
+import { MutationType } from './business/acceptors';
 import {
   BasicMutationType,
   JSONCommand,
   JSONOperation
 } from "./business/lib/types";
-import { Proposal, SerializedEntity, SerializedWorld } from "./business/types";
+import { Position, Proposal, SerializedEntity, SerializedWorld, Vector2D } from "./business/types";
 
 const applyPatch = ({commands}: {commands: ReadonlyArray<JSONCommand>}): Proposal => ({
   mutations: commands.map((command) => ({
@@ -22,6 +23,8 @@ const addPlayer = ({ playerId }: { playerId: string }): Proposal => ({
         value: {
           id: playerId,
           name: playerId,
+          isAlive: true,
+          ammo: 1,
           transform: {
             position: { animation: {}, initial: { x: 0, y: 0 } }
           }
@@ -47,11 +50,11 @@ const hydrate = ({
   ]
 });
 
-const moveRight = ({ playerId }: { playerId: string }): Proposal => ({
+const moveUp = ({ playerId }: { playerId: string }): Proposal => ({
   mutations: [
     {
       type: BasicMutationType.incBy,
-      payload: { path: `/entities/${playerId}/x`, amount: 1 }
+      payload: { path: `/entities/${playerId}/y`, amount: 1 }
     }
   ]
 });
@@ -89,13 +92,41 @@ const translateRight = ({
   ]
 });
 
+const shot = ({
+  shoter,
+  from,
+  direction
+}: {
+  shoter: string,
+  from: Position,
+  direction: Vector2D
+}): Proposal => ({
+  mutations: [
+    {
+      type: BasicMutationType.decBy,
+      payload: {
+        path: `/entities/${shoter}/ammo`,
+        amount: 1
+      }
+    },
+    {
+      type: MutationType.hitScan,
+      payload: {
+        from,
+        direction
+      }
+    }
+  ]
+})
+
 export const actions = {
   applyPatch,
   addPlayer,
   hydrate,
-  moveRight,
+  moveUp,
   moveLeft,
-  translateRight
+  translateRight,
+  shot
 };
 
 export type Intent =
@@ -117,7 +148,7 @@ export type Intent =
       payload: Readonly<{ playerId: string }>;
     }
   | {
-      type: "moveRight";
+      type: "moveUp";
       payload: Readonly<{ playerId: string }>;
     }
   | {
@@ -127,4 +158,12 @@ export type Intent =
   | {
       type: "translateRight";
       payload: Readonly<{ playerId: string; delta: number }>;
+    }
+  | {
+      type: "shot";
+      payload: Readonly<{
+        shoter: string,
+        from: Position,
+        direction: Vector2D
+      }>;
     };

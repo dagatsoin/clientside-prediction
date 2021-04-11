@@ -11,6 +11,8 @@ export type IModel<T, S> = {
 
 export type SerializedEntity = {
   id: string;
+  isAlive: boolean;
+  ammo: number;
   name: string;
   transform: {
     position: {
@@ -23,6 +25,8 @@ export type SerializedEntity = {
 export type IEntity = {
   id: string;
   name: string;
+  isAlive: boolean;
+  ammo: number;
   transform: Transform;
 };
 
@@ -76,6 +80,8 @@ export type Proposal = {
   shouldRegisterStep?: boolean
   mutations: Mutations
 };
+
+export type Vector2D = [number, number]
 
 export type Step<I> = {
   /**

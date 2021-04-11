@@ -22,5 +22,7 @@ export interface IServerRepresentation {
 export interface IPlayer {
   id: string;
   name: string;
+  isAlive: boolean;
+  ammo: number;
   position: Position;
 }

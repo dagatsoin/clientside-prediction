@@ -112,10 +112,10 @@ describe("Move animation without interruption", function () {
     disconnectAll()
   })
   
-  test("P0 - Step 3: Player0 should be at 0", function () {
+  test("Initial state", function () {
     expect(players[0].state.player.position.x).toBe(0)
   });
-  test("P0 - Step 4: should start translating to left", function (done) {
+  test("Check process", function (done) {
     players[0].dispatch({
       type: "translateRight",
       payload: {
@@ -166,21 +166,79 @@ describe("Move animation without interruption", function () {
     }, ping + 100)
   });
 });
-/* 
+
+/**
+ * This test a basic problem of lag compensation when mixing
+ * players with hight ping difference.
+ * Player 0 has a higher ping than Player 1
+ * At a global time reference, Player 0 moves and Player 1 shot Player 0 a few
+ * ms later. Player 1 misses Player 0.
+ * The puropose of our algorithm is to reach this result by composing with
+ * the players latence.
+ * Our rule to reach a concensus is called "Han shot first". Its main principle is to declare
+ * winner the one who was the fastest to respond to the new step.
+ * The system measure the time between a new step and the moment when the player performs
+ * an action. As such, we handle relative time, not absolute time.
+ * Example: Han and Greedo has a different ping. They received a new step (where they need
+ * to shot each other). Han reveived the step 500ms after Greedo. 
+ * Han shot Greedo 30ms after receiving the step.
+ * Greedo shot Han 100ms after receiving the step.
+ * The server will simply compare who was the fatest to respond to the new step.
+ */
 describe("Move animation with interruption from another player", function () {
-  test.todo("P1 - Step 1: hit P0");
-  test.todo("P0 - Step 1: should start to translate to left");
-  test.todo("Server - Step 1: should start to translate P0 to left");
-  test.todo("Server - should receive HIT P0 action from P1 at Step 1");
-  test.todo("Server - actions for Step1 has been reordered (HIT comes first)");
-  test.todo("Server - P1 should stop translating P0");
-  test.todo("Server - P1 left pos should be at 0");
-  test.todo("P0 - Step 1: should receive same result for Step 1 state");
-  test.todo("P0 - Step 2: should cancel translate animation");
-  test.todo("P0 - Step 2: should be dead");
-  test.todo("P0 - Step 2: timeline root should be now set at Step 2");
-  test.todo("P1 - Step 2: P0 should start translate");
-  test.todo("P1 - Step 2: P0 should stop translate");
-  test.todo("P1 - Step 2: P0 should be dead");
-  test.todo("P1 - Step 2: timeline root should be now set at Step 2");
-}); */
+  let players: IClient[] = [];
+  let server: IServer<any>
+  let ping: number = 0
+
+  beforeAll(async () => {
+    const infra = (await startInfra(2));
+    nodes.get("Player0")!.latence = 300
+    nodes.get("Player1")!.latence = 30
+    server = infra.server
+    players = infra.players
+    ping = getPing(players)
+  });
+
+  afterAll(function() {
+    disconnectAll()
+  })
+  test("Initial state", function() {
+    expect(players[0].state.player.position.x).toBe(0)
+    expect(players[1].state.player.position.x).toBe(0)
+  })
+  test("Check process", function(done) {
+    // Setup the scene, place players 
+    players[0].dispatch({
+      type: "moveUp",
+      payload: {
+        playerId: players[0].state.playerId,
+      }
+    });
+    // Player 0 moves first
+    players[0].dispatch({
+      type: "translateRight",
+      payload: {
+        playerId: players[0].state.playerId,
+        delta: 10
+      }
+    });
+    // Player 1 shot a bit late
+    setTimeout(function() {
+      players[1].dispatch({
+        type: "shot",
+        payload: {
+          shoter: players[1].state.playerId,
+          from: players[1].state.players.find(({id})=> id === players[1].state.playerId)!.position,
+          direction: [0, 1]
+        }
+      });
+    }, 40)
+    setTimeout(function() {
+      expect(players[0].state.stepId).toBe(6)
+      expect(players[1].state.stepId).toBe(6)
+      expect(players[0].state.player.isAlive).toBeTruthy()
+      expect(players[1].state.player.ammo).toBe(0)
+      done()
+    }, ping + 140)
+  })
+});

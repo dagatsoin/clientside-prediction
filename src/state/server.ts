@@ -39,16 +39,6 @@ class Representation implements IServerRepresentation {
   };
 }
 
-function isTimelineRoot(data: Step<Intent> | {
-  snapshot: SerializedWorld;
-  stepId: number;
-}): data is {
-  snapshot: SerializedWorld;
-  stepId: number;
-} {
-  return "snapshot" in data
-}
-
 export function createServerRepresentation(model: IModel<World, SerializedWorld>): IServerRepresentation {
   return new Representation(model)
 }

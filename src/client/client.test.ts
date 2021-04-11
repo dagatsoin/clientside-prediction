@@ -15,6 +15,8 @@ const snapshot: SerializedWorld = {
       {
         name: "Fraktar",
         id: "fraktar",
+        isAlive: true,
+        ammo: 1,
         transform: {
           position: {
             initial: { x: 0, y: 0 },

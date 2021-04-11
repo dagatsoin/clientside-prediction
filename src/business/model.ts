@@ -11,7 +11,8 @@ import {
   IEntity,
   Transform,
   SerializedEntity,
-  SerializedWorld
+  SerializedWorld,
+  Vector2D
 } from "./types";
 import {
   AddEntity,
@@ -20,6 +21,7 @@ import {
   JSONOperation
 } from "./lib/types";
 import { applyJSONCommand, increment } from "./lib/acceptors";
+import { MutationType } from './acceptors';
 
 type ISerializable<T> = { hydrate(snapshot: T): void };
 
@@ -27,16 +29,21 @@ class Entity implements IEntity, ISerializable<SerializedEntity> {
   constructor(snapshot: SerializedEntity) {
     this.id = snapshot.id;
     this.name = snapshot.name;
+    this.ammo = snapshot.ammo
+    this.isAlive = snapshot.isAlive
     this.transform.position.animation = snapshot.transform.position.animation;
     this.transform.position.initial = snapshot.transform.position.initial;
     makeObservable(this, {
       name: observable,
+      isAlive: observable,
       transform: observable
     });
   }
 
   public name: string;
   public id: string;
+  public isAlive: boolean;
+  public ammo: number;
   public readonly transform: Transform = ((self: this) => {
     return {
       position: {
@@ -117,10 +124,15 @@ export class Model implements IModel<World, SerializedWorld> {
     for (let mutation of mutations) {
       switch (mutation.type) {
         case BasicMutationType.incBy:
+        case BasicMutationType.decBy:
           const value = increment(
             this.data,
             mutation.payload.path,
-            mutation.payload.amount
+            mutation.payload.amount * (
+              mutation.type === BasicMutationType.incBy
+                ? 1
+                : -1
+            )
           );
           this._patch.push(
             // Don't mess with patch
@@ -130,6 +142,32 @@ export class Model implements IModel<World, SerializedWorld> {
               value
             })
           );
+          break;
+
+        case MutationType.hitScan:
+          // If angle is 0, the target is on the ray
+          const hitScanVector: Vector2D = mutation.payload.direction
+          const localOrigin = mutation.payload.from
+          this.data.entities.forEach((entity) => {
+            const targetVector: Vector2D = [
+              entity.transform.position.initial.x - localOrigin.x,
+              entity.transform.position.initial.y - localOrigin.y
+            ]
+            const angle = Math.atan2(hitScanVector[1] - targetVector[1], hitScanVector[0] - targetVector[0]) * 180 / Math.PI;
+            if (angle === 0) {
+              // Hit a target
+              // Kill it
+              entity.isAlive = false
+              this._patch.push(
+                // Don't mess with patch
+                Object.freeze({
+                  op: JSONOperation.replace,
+                  path: `/entities/${entity.id}/isAlive`,
+                  value: false
+                })
+              );
+            }
+          })
           break;
 
         case BasicMutationType.jsonCommand:

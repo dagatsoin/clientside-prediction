@@ -1,10 +1,20 @@
 import { ApplyCommand, Decrement, Increment } from "./lib/types";
+import { Position, Vector2D } from './types';
 
 export enum MutationType {
   increment = "increment",
   decrement = "decrement",
   restore = "reset",
-  setTimelineLength = "setTimelineLength"
+  setTimelineLength = "setTimelineLength",
+  hitScan = "hitScan"
+}
+
+type HitScan = {
+  type: MutationType.hitScan
+  payload: {
+    from: Position
+    direction: Vector2D
+  }
 }
 
 type Restore = {
@@ -26,6 +36,7 @@ export type Mutation =
   | Restore
   | ApplyCommand
   | Increment
-  | Decrement;
+  | Decrement
+  | HitScan
 
 export type Mutations = Mutation[];
