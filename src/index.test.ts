@@ -1,4 +1,3 @@
-import { stringify } from './business/lib/JSON';
 import { init } from "./client";
 import { IClient } from "./client/types";
 import { disconnectAll, getLatenceOf, nodes } from './mockedSocket';
