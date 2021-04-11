@@ -135,22 +135,35 @@ describe("Move animation without interruption", function () {
         server.state.timeTravel.at(4).entities.value[0][1].transform
           .position.animation.x
       ).toBeDefined();
-      done()
     }, ping/2)
     // Local player has finished animation
-    /* setTimeout(function () {
+    setTimeout(function () {
       try {
-        expect(players[0].state.stepId).toBe(4);
+        expect(players[0].state.stepId).toBe(5);
         expect(
-          players[0].state.timeTravel.at(2).entities.value[0][1].transform
+          players[0].state.timeTravel.at(5).entities.value[0][1].transform
             .position.animation.x
         ).toBeUndefined();
-        done();
       } catch (e) {
         done(e);
       }
     }, 100); // May break, this is hardcoded animation timing
-    */
+    // Server has finished animation
+    setTimeout(function () {
+      expect(
+        server.state.timeTravel.at(5).entities.value[0][1].transform
+          .position.animation.x
+      ).toBeUndefined();
+    }, ping/2 + 100)
+    // Client and server are in sync
+    setTimeout(function () {
+      expect(players[0].state.stepId).toBe(5)
+      expect(
+        players[0].state.timeTravel.at(5).entities.value[0][1].transform
+          .position.animation.x
+      ).toBeUndefined();
+      done()
+    }, ping + 100)
   });
 });
 /* 
