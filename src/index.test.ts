@@ -24,7 +24,15 @@ async function startInfra(clientNb: number) {
   return { server, players };
 }
 
-/* describe("Server sends a sync command", function() {
+function getPing(players: IClient[]) {
+  return Math.max(
+    ...players.map(({state: {playerId}}) => getLatenceOf(playerId)!)
+    )// Max players latence
+    * 2 // Back and forth
+    + 50 // arbitrary server computation time
+}
+
+describe("Server sends a sync command", function() {
   let players: IClient[] = [];
 
   beforeAll(async (done) => {
@@ -43,8 +51,8 @@ async function startInfra(clientNb: number) {
       done()
     }, getLatenceOf(players[0].state.playerId))
   })
-}) */
-
+})
+/*
 describe("Basic cases", function() {
   test.todo("Server confirms client step")
   test.todo("Server fixes client step")
@@ -55,16 +63,14 @@ describe("Basic cases", function() {
 describe("Create a room", function() {
   let players: IClient[] = [];
   let server: IServer<any>
-  let latence: number = 0
+  let ping: number = 0
 
   beforeAll(async (done) => {
     const infra = (await startInfra(3));
     server = infra.server
     players = infra.players
     done();
-    latence = Math.max(
-      ...players.map(({state: {playerId}}) => getLatenceOf(playerId)!)
-    )
+    ping = getPing(players)
   });
 
   afterAll(function() {
@@ -77,29 +83,26 @@ describe("Create a room", function() {
       expect(players[1].state.players.length).toBe(3)
       expect(players[2].state.players.length).toBe(3)
       done()
-    }, latence)
+    }, ping)
   })
 
   test("Players are sync with the server", function() {
     setTimeout(function(){
       expect(server.state.stepId).toBe(3)
-    }, latence)
+    }, ping)
   })
 })
-/*
+*/
 describe("Move animation without interruption", function () {
   let players: IClient[] = [];
   let server: IServer<any>
-  let latence: number = 0
+  let ping: number = 0
 
-  beforeAll(async (done) => {
+  beforeAll(async () => {
     const infra = (await startInfra(3));
     server = infra.server
     players = infra.players
-    done();
-    latence = Math.max(
-      ...players.map(({state: {playerId}}) => getLatenceOf(playerId)!)
-    )
+    ping = getPing(players)
   });
 
   afterAll(function() {
@@ -119,16 +122,16 @@ describe("Move animation without interruption", function () {
     });
     setTimeout(function () {
       try {
-        expect(players[0].state.step).toBe(2);
+        expect(players[0].state.stepId).toBe(4);
         expect(
-          players[0].state.timeTravel.at(2).snapshot.entities.value[0][1].transform
+          players[0].state.timeTravel.at(2).entities.value[0][1].transform
             .position.animation.x
         ).toBeUndefined();
         done();
       } catch (e) {
         done(e);
       }
-    }, 300);
+    }, ping);
   });
   test.todo("Server - Step 1: should start translating P0 to left");
   test.todo("P0 - Step 1: should receive same result for Step 1 state");
@@ -141,7 +144,7 @@ describe("Move animation without interruption", function () {
   test.todo("P1 - Step 1: timeline root should be now set at Step 1");
   test.todo("P1 - Step 2: should end translating P0 to left");
   test.todo("P1 - Step 1: timeline root should be now set at Step 2");
-});
+});/*
 
 describe("Move animation with interruption from another player", function () {
   test.todo("P1 - Step 1: hit P0");

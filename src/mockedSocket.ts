@@ -44,10 +44,8 @@ class Socket implements ISocket {
       nodes.forEach(({cb}) => cb(new MessageEvent('message', {data: data as string})))
     } else {
       this.queue.push(data as string)  
-      setTimeout(() => {
-        const nextStep = this.queue.shift()!;
-        nodes.get("server")!.cb(new MessageEvent('message', {data: nextStep}))
-      }, this.latence);
+      const nextStep = this.queue.shift()!;
+      nodes.get("server")!.cb(new MessageEvent('message', {data: nextStep}))
     }
   }
 }
