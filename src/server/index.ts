@@ -134,7 +134,7 @@ class Server implements IServer<World> {
         // Trigger the client action
         this.dispatch(input)
         if (this.model.patch.length) {
-          console.info(`New server step ${this.state.timeTravel.getCurrentStepId()}`);
+          console.info(`New server step ${this.state.timeTravel.getCurrentStepId()}`, this.state.timeTravel.get(this.state.timeTravel.getCurrentStepId()))
           nodes.forEach(({cb}, id) => {   
             if (id !== "server") {
               if (id !== input.clientId) {
