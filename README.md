@@ -21,6 +21,18 @@ In such case, the client rolls back to the time where the state diverges.
 Then the state is recomputed with the data sent by the server, and both server and
 client will be now in sync.
 
+### Mixing HPB and LPB
+Ping difference is a huge issue in code network.
+Our rule to reach a concensus is called "Han shot first". Its main principle is to declare
+winner the one who was the fastest to respond to the new step.
+The system measure the time between a new step and the moment when the player performs
+an action. As such, we handle relative time, not absolute time.
+Example: Han and Greedo has a different ping. They received a new step (where they need
+to shot each other). Han reveived the step 500ms after Greedo. 
+Han shot Greedo 30ms after receiving the step.
+Greedo shot Han 100ms after receiving the step.
+The server will simply compare who was the fatest to respond to the new step.
+
 ### Messages types
 
 The client can receive 3 types of message:
