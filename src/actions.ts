@@ -59,6 +59,24 @@ const moveUp = ({ playerId }: { playerId: string }): Proposal => ({
   ]
 });
 
+const moveRight = ({ playerId }: { playerId: string }): Proposal => ({
+  mutations: [
+    {
+      type: BasicMutationType.incBy,
+      payload: { path: `/entities/${playerId}/transform/position/initial/x`, amount: 1 }
+    }
+  ]
+});
+
+const moveDown = ({ playerId }: { playerId: string }): Proposal => ({
+  mutations: [
+    {
+      type: BasicMutationType.decBy,
+      payload: { path: `/entities/${playerId}/transform/position/initial/y`, amount: 1 }
+    }
+  ]
+});
+
 const moveLeft = ({ playerId }: { playerId: string }): Proposal => ({
   mutations: [
     {
@@ -124,6 +142,8 @@ export const actions = {
   addPlayer,
   hydrate,
   moveUp,
+  moveRight,
+  moveDown,
   moveLeft,
   translateRight,
   shot
@@ -149,6 +169,14 @@ export type Intent =
     }
   | {
       type: "moveUp";
+      payload: Readonly<{ playerId: string }>;
+    }
+  | {
+      type: "moveRight";
+      payload: Readonly<{ playerId: string }>;
+    }
+  | {
+      type: "moveDown";
       payload: Readonly<{ playerId: string }>;
     }
   | {

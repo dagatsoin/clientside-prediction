@@ -27,12 +27,48 @@ export function CharacterControler({arrow, children, dispatch, id}: Props) {
             type: "moveUp",
             payload: { playerId: id }
           })
+        },
+        ArrowRight: function() {
+          dispatch({
+            type: "moveRight",
+            payload: { playerId: id }
+          })
+        },
+        ArrowDown: function() {
+          dispatch({
+            type: "moveDown",
+            payload: { playerId: id }
+          })
+        },
+        ArrowLeft: function() {
+          dispatch({
+            type: "moveLeft",
+            payload: { playerId: id }
+          })
         }
       }
     : {
-        a: function() {
+        z: function() {
           dispatch({
             type: "moveUp",
+            payload: { playerId: id }
+          })
+        },
+        d: function() {
+          dispatch({
+            type: "moveRight",
+            payload: { playerId: id }
+          })
+        },
+        s: function() {
+          dispatch({
+            type: "moveDown",
+            payload: { playerId: id }
+          })
+        },
+        q: function() {
+          dispatch({
+            type: "moveLeft",
             payload: { playerId: id }
           })
         }
