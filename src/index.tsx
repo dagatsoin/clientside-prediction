@@ -1,9 +1,10 @@
 import { observer } from "mobx-react-lite";
 import * as React from "react";
 import { render } from "react-dom";
+import { JSONOperation } from './business/lib/types';
 import { init } from "./client";
 import { IClient } from "./client/types";
-import { Game } from "./Game";
+import { Game } from "./ui/Game";
 import { nodes } from './mockedSocket';
 import { createServer } from './server';
 
@@ -19,8 +20,16 @@ async function deployAndRun(names: string[]): Promise<IClient[]> {
   }
 
   // Connect clients
-  players.forEach(player => {
+  players.forEach((player, i) => {
+    console.log(i)
     player.dispatch({type: "addPlayer", payload: { playerId: player.state.playerId }})
+    player.dispatch({type: "applyPatch", payload: {
+      commands: [{
+        op: JSONOperation.replace,
+        path: `/entities/${player.state.playerId}/transform/position/initial/x`,
+        value: i * 8
+      }]
+    }})
   })
 
   nodes.get(names[0])!.latence = 300
@@ -31,7 +40,7 @@ async function deployAndRun(names: string[]): Promise<IClient[]> {
 
 const App = observer(function () {
   const [clients, setClients] = React.useState<IClient[]>([]);
-  const [names, setName] = React.useState<[string, string]>([
+  const [names, setName] = React.useState<string[]>([
     "Player1",
     "Player2"
   ]);

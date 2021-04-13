@@ -1,0 +1,30 @@
+.level {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background-image: url(../../../public/grass0.png);
+  background-color: 200%;
+  background-repeat: repeat;
+  image-rendering: pixelated;
+}
+
+.water{
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  z-index: 0;
+  background-image: url(../../../public/water0.png);
+  background-repeat: cover;
+  image-rendering: pixelated;
+}
+
+.forest{
+  position: absolute;
+  width: 120px;
+  height: 64px;
+  z-index: 2;
+  background-image: url(../../../public/forest.png);  
+  background-repeat: repeat;
+  background-size: contain;
+  image-rendering: pixelated;
+}

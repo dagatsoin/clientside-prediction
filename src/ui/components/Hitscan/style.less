@@ -1,0 +1,40 @@
+.hitScan {
+  position: absolute;
+  background-color: red;
+  filter: blur(2);
+  &-top {
+    width: 2;
+    top: 0;
+  }
+  &-right {
+    height: 2;
+    right: 0;
+  }
+  &-bottom {
+    width: 2;
+    bottom: 0;
+  }
+  &-left {
+    height: 2;
+    left: 0;
+  }
+    
+  transition: opacity 200ms, filter 200ms;
+
+  &-enter {
+    opacity: 0;
+    filter: blur(0px);
+  }
+  &-enter-active {
+    opacity: 1;
+    filter: blur(2px); 
+  }
+  &-exit {
+    opacity: 1;
+    filter: blur(2px); 
+  }
+  &-exit-active {
+    opacity: 0;
+    filter: blur(0px);
+  }
+}
