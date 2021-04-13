@@ -6,7 +6,7 @@ import { init } from "./client";
 import { IClient } from "./client/types";
 import { Game } from "./ui/Game";
 import { nodes } from './mockedSocket';
-import { createServer } from './server';
+import { createServer } from './server/Server';
 
 async function deployAndRun(names: string[]): Promise<IClient[]> {
   const players: IClient[] = [];

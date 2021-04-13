@@ -3,6 +3,7 @@
     "strict": true,
     "module": "CommonJS",
     "jsx": "react",
+    "outDir": "dist/",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
@@ -14,5 +15,7 @@
     "target": "ES6",
     "rootDir": "src",
     "moduleResolution": "node"
-  }
+  },
+  "files": ["src/server/index.ts"],
+  "exclude": ["dist"]
 }

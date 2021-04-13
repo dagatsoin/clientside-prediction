@@ -1,7 +1,7 @@
 import { init } from "./client";
 import { IClient } from "./client/types";
 import { disconnectAll, getLatenceOf, nodes } from './mockedSocket';
-import { createServer, IServer } from './server';
+import { createServer, IServer } from './server/Server';
 
 
 async function startInfra(clientNb: number) {
