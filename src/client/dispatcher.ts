@@ -33,7 +33,7 @@ export function createDispatcher(
        */ 
       if (message.type === "sync") {
         const intentsToResubmit: Intent[] = []
-        for (let i = message.data.stepId; i <= timeTravel.getCurrentStepId(); i++) {
+        for (let i = message.data.stepId; i < timeTravel.getCurrentStepId(); i++) {
           const step = timeTravel.get(i)
           if ("intent" in step) {
             intentsToResubmit.push(step.intent)
