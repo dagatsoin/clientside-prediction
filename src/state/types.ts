@@ -9,6 +9,8 @@ export interface IRepresentation {
   readonly player: IPlayer;
   readonly players: IPlayer[];
   readonly timeTravel: ITimeTravel<Intent, SerializedWorld>;
+  addStepListener(listener: (stepId: number) => void): void
+  removeStepListener(listener: (stepId: number) => void): void
 }
 
 export interface IServerRepresentation {
@@ -17,6 +19,8 @@ export interface IServerRepresentation {
   readonly players: IPlayer[];
   readonly patch: ReadonlyArray<JSONCommand>;
   readonly timeTravel: ITimeTravel<Intent, SerializedWorld>;
+  addStepListener(listener: (stepId: number) => void): void
+  removeStepListener(listener: (stepId: number) => void): void
 }
 
 export interface IPlayer {

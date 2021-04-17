@@ -35,6 +35,18 @@ class Representation implements IRepresentation {
     return this.timeTravel.getCurrentStepId();
   }
 
+  private stepListeners: Array<(stepId: number) => void> = []
+  public addStepListener(listener: (stepId: number) => void) {
+    this.stepListeners.push(listener)
+  }
+
+  public removeStepListener(listener: (stepId: number) => void) {
+    const index = this.stepListeners.indexOf(listener)
+    if (index > -1) {
+      this.stepListeners.splice(index, 1)
+    }
+  }
+
   constructor(
     private model: IModel<World, SerializedWorld>,
     private dispatch: Dispatcher,
@@ -45,7 +57,7 @@ class Representation implements IRepresentation {
       players: computed
     });
 
-    useNap(this.model, this.timeTravel)
+    useNap(this.model, this.timeTravel, this.stepListeners)
   }
 }
 

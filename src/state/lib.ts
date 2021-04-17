@@ -78,15 +78,22 @@ export function updatePlayersRepresentation(
 
 export function useNap(
   model: IModel<World, SerializedWorld>,
-  timeTravel: ITimeTravel<Intent, SerializedWorld>
+  timeTravel: ITimeTravel<Intent, SerializedWorld>,
+  stepListeners: Array<(stepId: number) => void>
 ) {
       // NAP
       autorun(() => {
         if (model.patch.length) {
+          const currentStepId = timeTravel.getCurrentStepId()
           timeTravel.commitStep({
             timestamp: timeTravel.getLocalDeltaTime(),
             patch: model.patch
           });
+          if (currentStepId !== timeTravel.getCurrentStepId()) {
+            for (let listener of stepListeners) {
+              listener(timeTravel.getCurrentStepId())
+            }
+          }
         }
       });
   

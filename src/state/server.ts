@@ -9,7 +9,17 @@ import { IPlayer, IServerRepresentation } from './types';
 
 class Representation implements IServerRepresentation {
   public timeTravel: ITimeTravel<Intent, SerializedWorld>;
-  
+  private stepListeners: Array<(stepId: number) => void> = []
+  public addStepListener(listener: (stepId: number) => void) {
+    this.stepListeners.push(listener)
+  }
+
+  public removeStepListener(listener: (stepId: number) => void) {
+    const index = this.stepListeners.indexOf(listener)
+    if (index > -1) {
+      this.stepListeners.splice(index, 1)
+    }
+  }
   constructor(
     private model: IModel<World, SerializedWorld>
   ) {
@@ -18,7 +28,7 @@ class Representation implements IServerRepresentation {
       players: computed,
       stepId: computed
     });
-    useNap(this.model, this.timeTravel)
+    useNap(this.model, this.timeTravel, this.stepListeners)
   }
   
   get stepId() {

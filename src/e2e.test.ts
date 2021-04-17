@@ -56,7 +56,7 @@ describe("API", function() {
       expect(players[0].state.players.length).toBe(3)
       expect(server.state.timeTravel.getTimeline()).toEqual(players[0].state.timeTravel.getTimeline())
       done()
-    }, 4000)
+    }, latence)
   })
   test.todo("intent")
   test.todo("reduce")
@@ -99,16 +99,18 @@ describe("Create a room", function() {
   })
 })
 
-/* describe("Move animation", function () {
+describe("Move animation", function () {
   let players: IClient[] = [];
   let server: IServer<any>
   let ping: number = 0
+  let syncLatency: number = 0
 
   beforeAll(async () => {
-    const infra = (await startInfra(3));
+    const infra = (await startInfra(1));
     server = infra.server
     players = infra.players
-    ping = getPing(players)
+    syncLatency = getPing(players)
+    ping = getLatenceOf(players[0].state.playerId) * 2
   });
 
   afterAll(function() {
@@ -119,6 +121,110 @@ describe("Create a room", function() {
     expect(players[0].state.player.position.x).toBe(0)
   });
   test("Check process", function (done) {
+    
+    // Local player should start animation
+    const clientStartedAnimationListener = function(stepId: number){
+      if (stepId === 2) {
+        try {
+          expect(        
+            players[0]
+              .state
+              .timeTravel.at(2)
+              .entities.value[0][1]
+              .transform
+              .position
+              .animation.x
+          ).toBeDefined();
+          players[0].state.removeStepListener(clientStartedAnimationListener)
+        } catch(e) {
+          done(e)
+        }
+      }
+    }
+    players[0].state.addStepListener(clientStartedAnimationListener)
+    
+     // Server received the start animation intent
+    const serverStartedAnimationListener = function(stepId: number){
+        if (stepId === 2) {
+          try {
+            expect(
+              server
+              .state
+              .timeTravel.at(2)
+              .entities.value[0][1]
+              .transform
+              .position
+              .animation.x
+            ).toBeDefined();
+            server.state.removeStepListener(serverStartedAnimationListener)
+          } catch(e) {
+            done(e)
+          }
+      }
+    }
+    server.state.addStepListener(serverStartedAnimationListener)
+
+    // Local player has finished animation
+    const clientFinishedAnimationListener = function(stepId: number) {
+      if (stepId === 3) {
+        try {
+          expect(
+            players[0]
+              .state
+              .timeTravel.at(3)
+              .entities.value[0][1]
+              .transform
+              .position
+              .animation.x
+          ).toBeUndefined();
+          expect(
+            players[0]
+              .state
+              .timeTravel.at(3)
+              .entities.value[0][1]
+              .transform
+              .position
+              .initial.x
+          ).toBe(10)
+          players[0].state.removeStepListener(clientFinishedAnimationListener)
+        } catch(e) {
+          done(e)
+        }
+      }
+    }
+    players[0].state.addStepListener(clientFinishedAnimationListener)
+
+    // Server has finished animation
+    const serverFinishedAnimationListener = function(stepId: number) {
+      if (stepId === 3) {
+        try {
+          expect(
+            server
+              .state
+              .timeTravel.at(3)
+              .entities.value[0][1]
+              .transform
+              .position
+              .animation.x
+          ).toBeUndefined();
+          expect(
+            server
+              .state
+              .timeTravel.at(3)
+              .entities.value[0][1]
+              .transform
+              .position
+              .initial.x
+          ).toBe(10)
+          server.state.removeStepListener(serverFinishedAnimationListener)
+          done()
+        } catch (e) {
+          done(e)
+        }
+      }
+    }
+    server.state.addStepListener(serverFinishedAnimationListener)
+ 
     players[0].dispatch({
       type: "translateRight",
       payload: {
@@ -126,50 +232,9 @@ describe("Create a room", function() {
         delta: 10
       }
     });
-    // Local player should start animation
-    expect(
-      players[0].state.timeTravel.at(4).entities.value[0][1].transform
-        .position.animation.x
-    ).toBeDefined();
-    
-    // Server received the start animation intent
-    setTimeout(function () {
-      expect(
-        server.state.timeTravel.at(4).entities.value[0][1].transform
-          .position.animation.x
-      ).toBeDefined();
-    }, ping/2)
-    // Local player has finished animation
-    setTimeout(function () {
-      try {
-        expect(players[0].state.stepId).toBe(5);
-        expect(
-          players[0].state.timeTravel.at(5).entities.value[0][1].transform
-            .position.animation.x
-        ).toBeUndefined();
-      } catch (e) {
-        done(e);
-      }
-    }, 100); // May break, this is hardcoded animation timing
-    // Server has finished animation
-    setTimeout(function () {
-      expect(
-        server.state.timeTravel.at(5).entities.value[0][1].transform
-          .position.animation.x
-      ).toBeUndefined();
-    }, ping/2 + 100)
-    // Client and server are in sync
-    setTimeout(function () {
-      expect(players[0].state.stepId).toBe(5)
-      expect(
-        players[0].state.timeTravel.at(5).entities.value[0][1].transform
-          .position.animation.x
-      ).toBeUndefined();
-      done()
-    }, ping + 100)
-  });
+  })
 });
- */
+
 /**
  * This test a basic problem of lag compensation when mixing
  * players with hight ping difference.
