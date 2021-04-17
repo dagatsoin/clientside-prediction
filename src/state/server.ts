@@ -1,7 +1,7 @@
 import { makeObservable, computed } from 'mobx';
 import { Intent } from '../actions';
-import { JSONCommand, JSONOperation } from '../business/lib/types';
-import { IModel, Step, SerializedWorld, World } from '../business/types';
+import { JSONCommand } from '../business/lib/types';
+import { IModel, SerializedWorld, World } from '../business/types';
 import { createTimeTravel } from '../timeTravel';
 import { ITimeTravel } from '../timeTravel/types';
 import { updatePlayersRepresentation, useNap } from './lib';

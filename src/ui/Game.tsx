@@ -15,12 +15,12 @@ export const Game = observer(function({ state, dispatch }: IClient) {
       <Skeleton position={{x: 114, y:143}} />
       <Dragon position={{x: 64, y:223}} />
       {state.players.map(player => player.id === state.playerId
-        ? <CharacterControler player={player} dispatch={dispatch}>
+        ? <CharacterControler key={player.id} player={player} dispatch={dispatch}>
             <HitScan player={player} shortcut=" " direction="bottom"/>
-            <Player gender="male" key={player.id} data={player}/>
+            <Player gender="male" data={player}/>
           </CharacterControler>
-        : <CharacterControler player={player} dispatch={dispatch} arrow>
-            <Player gender="female" key={player.id} data={player}/>
+        : <CharacterControler key={player.id} player={player} dispatch={dispatch} arrow>
+            <Player gender="female" data={player}/>
             <HitScan player={player} shortcut="Shift" direction="right"/>
           </CharacterControler>
       )}

@@ -1,6 +1,7 @@
+import { JSONCommand, JSONOperation } from './business/lib/types';
 import { init } from "./client";
 import { IClient } from "./client/types";
-import { disconnectAll, getLatenceOf, nodes } from './mockedSocket';
+import { getLatenceOf, setLatence } from './server/clientList';
 import { createServer, IServer } from './server/Server';
 
 
@@ -28,37 +29,40 @@ function getPing(players: IClient[]) {
     ...players.map(({state: {playerId}}) => getLatenceOf(playerId)!)
     )// Max players latence
     * 2 // Back and forth
-    + 50 // arbitrary server computation time
+    + 200 // arbitrary server computation time
 }
 
-describe("Server sends a sync command", function() {
+describe("API", function() {
   let players: IClient[] = [];
-
+  let server: IServer<any>
+  let latence: number
   beforeAll(async (done) => {
-    players = (await startInfra(1)).players;
+    const infra = (await startInfra(3));
+    players = infra.players
+    server = infra.server
+    latence = getPing(players)
+    console.log(latence)
     done();
   });
 
   afterAll(function() {
-    disconnectAll()
+    server.close()
   })
 
-  test("Player is hydrated after connexion", function(done) {
+  test("sync", function(done) {
+    // The sync command is sent at player creation.
+    // It contains all the server timeline
     setTimeout(function(){
-      expect(players[0].state.players.length).toBe(1)
-      expect(players[0].state.stepId).toBe(1)
+      expect(players[0].state.players.length).toBe(3)
+      expect(server.state.timeTravel.getTimeline()).toEqual(players[0].state.timeTravel.getTimeline())
       done()
-    }, getLatenceOf(players[0].state.playerId))
+    }, 4000)
   })
+  test.todo("intent")
+  test.todo("reduce")
+  test.todo("rollback")
 })
 
-/* describe("Basic cases", function() {
-  test.todo("Server confirms client step")
-  test.todo("Server fixes client step")
-  test.todo("Server modifies past")
-  test.todo("Server send new step")
-}) */
- 
 describe("Create a room", function() {
   let players: IClient[] = [];
   let server: IServer<any>
@@ -73,7 +77,7 @@ describe("Create a room", function() {
   });
 
   afterAll(function() {
-    disconnectAll()
+    server.close()
   })
 
   test("All players know each others", function(done) {
@@ -95,7 +99,7 @@ describe("Create a room", function() {
   })
 })
 
-describe("Move animation", function () {
+/* describe("Move animation", function () {
   let players: IClient[] = [];
   let server: IServer<any>
   let ping: number = 0
@@ -108,7 +112,7 @@ describe("Move animation", function () {
   });
 
   afterAll(function() {
-    disconnectAll()
+    server.close()
   })
   
   test("Initial state", function () {
@@ -165,7 +169,7 @@ describe("Move animation", function () {
     }, ping + 100)
   });
 });
-
+ */
 /**
  * This test a basic problem of lag compensation when mixing
  * players with hight ping difference.
@@ -185,20 +189,22 @@ describe("Move animation", function () {
  * The server will simply compare who was the fatest to respond to the new step.
  */
 
-describe("Han moved first", function () {
+/* describe("Han moved first", function () {
   let players: IClient[] = [];
+  let server: IServer<any>
   let ping: number = 0
 
   beforeAll(async () => {
     const infra = (await startInfra(2));
-    nodes.get("Player0")!.latence = 300
-    nodes.get("Player1")!.latence = 30
+    setLatence("Player0", 300)
+    setLatence("Player1", 30)
+    server = infra.server
     players = infra.players
     ping = getPing(players)
   });
 
   afterAll(function() {
-    disconnectAll()
+    server.close()
   })
   test("Initial state", function() {
     expect(players[0].state.player.position.x).toBe(0)
@@ -248,15 +254,15 @@ describe("Han shot first", function () {
 
   beforeAll(async () => {
     const infra = (await startInfra(2));
-    nodes.get("Player0")!.latence = 300
-    nodes.get("Player1")!.latence = 30
+    setLatence("Player0", 300)
+    setLatence("Player1", 30)
     server = infra.server
     players = infra.players
     ping = getPing(players)
   });
 
   afterAll(function() {
-    disconnectAll()
+    server.close()
   })
   test("Initial state", function() {
     expect(players[0].state.player.position.x).toBe(0)
@@ -299,4 +305,4 @@ describe("Han shot first", function () {
       done()
     }, ping + 140)
   })
-});
+}); */

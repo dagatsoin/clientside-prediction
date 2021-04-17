@@ -2,8 +2,7 @@ import { actions, Intent } from "../actions";
 import { IModel } from "../business/types";
 import { Dispatcher } from "./types";
 import { IRepresentation } from "../state/types";
-import { parse, stringify } from '../business/lib/JSON';
-import { ISocket } from '../mockedSocket';
+import { stringify } from '../business/lib/JSON';
 import { ServerMessage } from '../type';
 
 /**
@@ -17,7 +16,7 @@ export function createDispatcher(
   model: IModel<any, any>,
   // State is not created at when call this function
   getState: () => IRepresentation,
-  send: ISocket["send"],
+  socket: WebSocket,
 ): {
   onMessage(message: MessageEvent<string>): void;
   dispatch: Dispatcher;
@@ -29,14 +28,25 @@ export function createDispatcher(
       const { timeTravel } = getState();
       /**
        * The server sent a sync command.
-       * Drop the timeline and sync the client with the server by applying the given snapshot.
+       * We reduce the timeline to the server stepId.
+       * Then we will apply actions on it.
        */ 
       if (message.type === "sync") {
+        const intentsToResubmit: Intent[] = []
+        for (let i = message.data.stepId; i <= timeTravel.getCurrentStepId(); i++) {
+          const step = timeTravel.get(i)
+          if ("intent" in step) {
+            intentsToResubmit.push(step.intent)
+          }
+        }
         timeTravel.reset({
           stepId: message.data.stepId,
           snapshot: message.data.snapshot
         })
-        model.present(actions.hydrate({ snapshot: message.data.snapshot, shouldRegisterStep: false }))
+        intentsToResubmit.forEach(function(intent) {
+          timeTravel.startStep(intent)
+          model.present(actions[intent.type](intent.payload as any))
+        })
       }
       /**
        * The server is ahead of one step.
@@ -67,7 +77,7 @@ export function createDispatcher(
        * That means there won't be ever any past modification before this step.
        */
       else if (message.type === "reduce") {
-        timeTravel.rebaseRoot(message.data.to)
+        timeTravel.reduce(message.data.to)
       }
     },
     dispatch(intent: Intent) {
@@ -75,12 +85,13 @@ export function createDispatcher(
       // Backup intent to write the next step
       timeTravel.startStep(intent)
       const stepId = cStep;
-      send(stringify({type: "intent", data: {
+      const data = stringify({type: "intent", data: {
         timestamp: timeTravel.getLocalDeltaTime(),
         clientId,
         stepId,
         ...intent
-      }}));
+      }})
+      socket.send(data);
       model.present(actions[intent.type](intent.payload as any));
     }
   };

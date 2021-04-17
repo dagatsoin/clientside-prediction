@@ -1,3 +1,7 @@
+import express from 'express';
+import { URL } from 'url'
+import http from 'http';
+import WebSocket from 'ws';
 import { actions, Intent } from '../actions';
 import { parse, stringify } from '../business/lib/JSON';
 import { createModel } from "../business/model";
@@ -6,58 +10,86 @@ import {
   IModel,
   SerializedWorld
 } from "../business/types";
-import { createSocket, ISocket, nodes } from '../mockedSocket';
 import { createServerRepresentation } from "../state/server";
 import { IServerRepresentation } from "../state/types";
 import { Timeline } from '../timeTravel/types';
 import { ClientMessage, ServerMessage } from '../type';
+import { getClients, addClient, forAllClients, getLatenceOf, deleteClient } from './clientList';
 
 export interface IServer<T> {
   state: IServerRepresentation
+  close(): void
   dispatch: (intent: Intent) => Promise<void>;
 }
 
-function isOutDated(step: number) {
-  return false;
-}
-
 class Server implements IServer<World> {
+  private wss: WebSocket.Server
+  private server: http.Server
   constructor(
     private model: IModel<World, SerializedWorld> = createModel("server"),
-    private socket: ISocket = createSocket("server")
   ) {
-    this.socket.onmessage = this.onMessage
+    const app = express();
+    this.server = http.createServer(app);
+    this.wss = new WebSocket.Server({ server: this.server });
+    
+    this.wss.on('connection', (client: WebSocket, req) => {
+      const id = getId(req.url)
+      // For local developement, we wrap the send function to
+      // add some latency
+      const send = client.send;
+      client.send = function(...args: any[]) {
+        setTimeout(
+          function() {
+            send.apply(client, args as any)
+          },
+          getLatenceOf(id)
+        )
+      }
+
+      // Remove client at disconnection
+      client.onclose=function(e) {
+        deleteClient(e.target)
+      }
+      addClient(id, client)
+      client.onmessage = this.onMessage
+    });
+    
+    //start our server
+    this.server.listen(process.env.PORT || 3000, () => {
+        console.log(`Server started on port ${JSON.stringify(this.server.address())}`);
+    });
+
+    
     this.state = createServerRepresentation(this.model);
   }
   
   state: IServerRepresentation;
 
-  onSync = (ev: MessageEvent<any>) => {
-    const node = nodes.get(parse(ev.data).playerId)
-    if (node) {
-      node.cb(new MessageEvent(stringify({snapshot: this.model.snapshot, stepId: this.state.stepId})))
-    }
+  close() {
+    this.wss.close()
+    this.server.close()
+    forAllClients(function(client) {
+      deleteClient(client)
+    })
   }
 
-  onMessage = (ev: MessageEvent<string>) => {
+  onMessage = (ev: WebSocket.MessageEvent) => {
     // Use native parser to keep the serialized map
-    const message: ClientMessage = JSON.parse(ev.data)
+    const message: ClientMessage = JSON.parse(ev.data as string)
     /**
      * The client want to sync with the server.
      */
     if (message.type === "sync") {
-      const node = nodes.get(message.data.clientId)
-      if (node) {
-        node.cb(new MessageEvent<string>("message", {
-          data: stringify({
-            type: "sync",
-            data: {
-              stepId: this.state.stepId,
-              snapshot: this.model.snapshot,
-              timeline: []
-            }
-          })
-        }))
+      const clients = getClients(message.data.clientId)
+      for (let client of clients) {
+        client.send(stringify({
+          type: "sync",
+          data: {
+            snapshot: this.state.timeTravel.getInitalSnapshot(),
+            stepId: this.state.timeTravel.getInitialStep(),
+            timeline: this.state.timeTravel.getTimeline()
+          }
+        } as ServerMessage))
       }
     }
     else if (message.type === "intent") {
@@ -80,7 +112,7 @@ class Server implements IServer<World> {
           let newSegment: Timeline<Intent>
           // Case 1: Client A has more latency but triggered the action before Client B
           if (message.data.timestamp < this.state.timeTravel.get(message.data.stepId).timestamp) {
-            newSegment = this.state.timeTravel.modifyPast(message.data.stepId, (oldTimeline, newTimeline) => {
+            newSegment = this.state.timeTravel.modifyPast(message.data.stepId, (oldTimeline) => {
               // Insert the input action in the new timeline
               this.dispatch(input)
               
@@ -101,7 +133,7 @@ class Server implements IServer<World> {
               this.dispatch(input);
 
               // Then replay all the old timeline actions
-              for (let i = message.data.stepId + 2; i < oldTimeline.length; i++) {
+              for (let i = message.data.stepId + 1; i < oldTimeline.length; i++) {
                 const { intent } = oldTimeline[i]
                 this.dispatch(intent);
               }
@@ -110,19 +142,14 @@ class Server implements IServer<World> {
           console.info("Server modified past", parse(stringify(newSegment)))
           // The server has now a new "present"
           // We need to replay the new timeline on the clients.
-          nodes.forEach(({cb}, id) => {
-            if (id !== "server") {
-              const data = stringify({
-                type: "rollback",
-                data: {
-                  to: message.data.stepId,
-                  timeline: newSegment
-                }
-              } as ServerMessage)
-              cb(new MessageEvent<string>("message", {
-                data
-              }))
-            }
+          forAllClients((client) => {
+            client.send(stringify({
+              type: "rollback",
+              data: {
+                to: message.data.stepId,
+                timeline: newSegment
+              }
+            } as ServerMessage))
           })
         }    
       } 
@@ -135,26 +162,20 @@ class Server implements IServer<World> {
         this.dispatch(input)
         if (this.model.patch.length) {
           console.info(`New server step ${this.state.timeTravel.getCurrentStepId()}`, this.state.timeTravel.get(this.state.timeTravel.getCurrentStepId()))
-          nodes.forEach(({cb}, id) => {   
-            if (id !== "server") {
-              if (id !== input.clientId) {
-                cb(new MessageEvent<string>("message", {
-                  data: stringify({
-                    type: "intent",
-                    data: input
-                  })
-                }))
-              } else {
-                cb(new MessageEvent<string>("message", {
-                  data: stringify({
-                    type: "patch",
-                    data: {
-                      stepId: this.state.stepId,
-                      patch: this.state.patch
-                    }
-                  })
-                }))
-              }
+          forAllClients((client, id) => {   
+            if (id !== input.clientId) {
+              client.send(stringify({
+                type: "intent",
+                data: input
+              } as ServerMessage))
+            } else {
+              client.send(stringify({
+                type: "rollback",
+                data: {
+                  to: this.state.stepId,
+                  timeline: [this.state.timeTravel.get(this.state.stepId)]
+                }
+              } as ServerMessage))
             }
           })
         }
@@ -173,4 +194,13 @@ export function createServer() {
 }
 function isAllowedAction(type: Intent["type"], stepId: number) {
   return type === "addPlayer"
+}
+
+function getId(url: any): string {
+  // added a mock url if express do not send protocol and hostname
+  const searchParams = new URL(url, "http://mockurl").searchParams
+  if (searchParams.has("clientId")) {
+    return searchParams.get("clientId")!
+  }
+  throw new Error(`A client connexion URL did not contain the client id ${url}`)
 }

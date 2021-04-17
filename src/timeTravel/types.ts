@@ -2,8 +2,13 @@ import { JSONCommand } from '../business/lib/types';
 import { Step } from "../business/types";
 
 export type Timeline<I> = Step<I>[]
+export type ReadonlyTimeline<I> = ReadonlyArray<Readonly<Step<I>>>
 
 export interface ITimeTravel<I, T> {
+  /** 
+   * Return a statically readonly reference to the timeline
+   */
+  getTimeline(): ReadonlyTimeline<I>
   /**
    * Start a step which can be still aborted.
    * This will prepare a new object with the triggered intent.
@@ -71,10 +76,10 @@ export interface ITimeTravel<I, T> {
    */
   reset(initialState?: {stepId: number, snapshot: T}): void;
   /**
-   * Rebase the root to the given stepId.
+   * Reduce all previous steps to the given stepId as a snapshot.
    * All the previous step will be lost.
    */
-  rebaseRoot(to: number): void;
+  reduce(to: number): void;
   /**
    * Return a branch for a given name
    */

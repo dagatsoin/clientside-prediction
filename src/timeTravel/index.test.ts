@@ -150,7 +150,7 @@ test("Rebase the root to the given step. All the previous step will be lost.", f
       value: "Player1"
     }],
   })
-  timeTraveler.rebaseRoot(1)
+  timeTraveler.reduce(1)
   expect(timeTraveler.getInitialStep()).toBe(1)
   expect(timeTraveler.getCurrentStepId()).toBe(2)
   expect(timeTraveler.getInitalSnapshot()).toEqual({

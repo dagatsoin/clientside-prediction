@@ -41,7 +41,7 @@ const hydrate = ({
   snapshot: SerializedWorld;
   shouldRegisterStep?: boolean;
 }): Proposal => ({
-  shouldRegisterStep,
+  shouldReact: shouldRegisterStep,
   mutations: [
     {
       type: BasicMutationType.jsonCommand,

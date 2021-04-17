@@ -120,7 +120,7 @@ export class Model implements IModel<World, SerializedWorld> {
     });
   }
 
-  public present = ({ mutations, shouldRegisterStep = true }: Proposal) => {
+  public present = ({ mutations, shouldReact = true }: Proposal) => {
     this._patch = [];
     for (let mutation of mutations) {
       switch (mutation.type) {
@@ -193,7 +193,7 @@ export class Model implements IModel<World, SerializedWorld> {
           else {
             applyJSONCommand(this.data, mutation.payload);
           }
-          if (shouldRegisterStep) {
+          if (shouldReact) {
             this._patch.push(mutation.payload);
           }
           break;

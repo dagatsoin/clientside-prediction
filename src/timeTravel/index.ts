@@ -1,6 +1,6 @@
 import { applyJSONCommand } from "../business/lib/acceptors";
 import { parse, stringify } from '../business/lib/JSON';
-import { JSONCommand } from "../business/lib/types";
+import { JSONCommand, JSONOperation } from "../business/lib/types";
 import { Step } from "../business/types";
 import { ITimeTravel, Timeline } from "./types";
 
@@ -18,6 +18,10 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
     timestamp: number
     stepId: number
   }, private timeline: Timeline<I>){}
+
+  getTimeline() {
+    return [...this.timeline]
+  }
   startStep(intent: I): void {
     this.newIntent = intent
   }
@@ -37,7 +41,7 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
   private baseBranch: Timeline<I> | undefined
 
   modifyPast(stepId: number, transaction: (baseBranch: Readonly<Timeline<I>>, newBranch: Timeline<I>) => void) {
-    if (stepId - this.initialState.stepId >= this.timeline.length) {
+    if (stepId - this.initialState.stepId > this.timeline.length) {
       console.warn("can't fork at step", stepId)
     }
     // Don't mess with the base timeline
@@ -90,13 +94,23 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
       timestamp: number;
       patch: JSONCommand[];
     } {
+    if (stepId === this.initialState.stepId) {
+      return {
+        timestamp: 0,
+        patch: [{
+          op: JSONOperation.replace,
+          path: "/",
+          value: this.getInitalSnapshot()
+        }]
+      }
+    }
     const index = Math.max(stepId - this.initialState.stepId - 1, 0);
     return this.timeline[index];
   }
 
   reset(initialState?: { stepId: number, snapshot: S }) {
     if (initialState) {
-      this.initialState = { ...initialState, timestamp: Date.now() }
+      this.initialState = { ...initialState, timestamp: 0 }
     }
     this.timeline.splice(0);
     this.resetTimer()
@@ -113,7 +127,7 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
     this.resetTimer()
   }
 
-  rebaseRoot(to: number) {
+  reduce(to: number) {
     const deleteCount = to - this.initialState.stepId;
     this.initialState = {
       timestamp: Date.now(),

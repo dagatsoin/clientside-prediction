@@ -1,9 +1,7 @@
-import { BasicMutationType, JSONOperation } from "../business/lib/types";
+import { JSONOperation } from "../business/lib/types";
 import { createModel } from "../business/model";
 import { SerializedWorld } from "../business/types";
 import { createClientRepresentation } from "../state/client";
-import { actions } from "../actions";
-import { ISocket } from '../mockedSocket';
 import { createDispatcher } from './dispatcher';
 
 const playerId = "fraktar";
@@ -28,8 +26,8 @@ const snapshot: SerializedWorld = {
   }
 };
 const model = createModel(playerId, snapshot);
-const state = createClientRepresentation(model, () => {}, {} as ISocket);
-const {dispatch} = createDispatcher("fraktar", model, () => state, () => {})
+const state = createClientRepresentation(model, () => {});
+const {dispatch} = createDispatcher("fraktar", model, () => state, {send: ()=>{}} as any)
 const { player } = state;
 it("should instantaly move to left", function () {
   dispatch({

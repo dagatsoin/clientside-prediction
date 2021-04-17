@@ -2,7 +2,6 @@ import { computed, makeObservable } from "mobx";
 import { Intent } from '../actions';
 import { IModel, SerializedWorld, World } from "../business/types";
 import { Dispatcher } from '../client/types';
-import { ISocket } from '../mockedSocket';
 import { createTimeTravel } from "../timeTravel";
 import { ITimeTravel } from "../timeTravel/types";
 import {
@@ -39,7 +38,6 @@ class Representation implements IRepresentation {
   constructor(
     private model: IModel<World, SerializedWorld>,
     private dispatch: Dispatcher,
-    socket: ISocket
   ) {
     this._timeTravel = createTimeTravel({ snapshot: model.snapshot, stepId: 0 }, []);
     makeObservable(this, {
@@ -53,8 +51,7 @@ class Representation implements IRepresentation {
 
 export function createClientRepresentation(
   model: IModel<World, SerializedWorld>,
-  dispatch: Dispatcher,
-  socket: ISocket
+  dispatch: Dispatcher
 ) {
-  return new Representation(model, dispatch, socket);
+  return new Representation(model, dispatch);
 }

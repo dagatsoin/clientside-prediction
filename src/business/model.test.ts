@@ -8,6 +8,8 @@ const model = createModel("server", {
       {
         name: "Fraktar",
         id: "fraktar",
+        isAlive: true,
+        ammo: 1,
         transform: {
           position: {
             animation: {},

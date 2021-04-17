@@ -14,5 +14,6 @@
     "target": "ES6",
     "rootDir": "src",
     "moduleResolution": "node"
-  }
+  },
+  "exclude": ["dist/*"]
 }

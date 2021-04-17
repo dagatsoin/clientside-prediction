@@ -77,7 +77,7 @@ export type Present = (
 ) => void;
 
 export type Proposal = {
-  shouldRegisterStep?: boolean
+  shouldReact?: boolean
   mutations: Mutations
 };
 

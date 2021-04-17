@@ -5,14 +5,10 @@ import { JSONOperation } from './business/lib/types';
 import { init } from "./client";
 import { IClient } from "./client/types";
 import { Game } from "./ui/Game";
-import { nodes } from './mockedSocket';
-import { createServer } from './server/Server';
+import { setLatence } from './server/clientList';
 
 async function deployAndRun(names: string[]): Promise<IClient[]> {
   const players: IClient[] = [];
-  
-  // Create server
-  createServer()
   
   // Create players
   for (let i = 0; i < names.length; i++) {
@@ -32,8 +28,8 @@ async function deployAndRun(names: string[]): Promise<IClient[]> {
     }})
   })
 
-  nodes.get(names[0])!.latence = 300
-  nodes.get(names[1])!.latence = 30
+  setLatence(names[0], 300)
+  setLatence(names[1], 30)
 
   return players;
 }
