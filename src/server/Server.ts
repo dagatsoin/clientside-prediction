@@ -131,8 +131,8 @@ class Server implements IServer<World> {
           // Case 2: Client A triggered the action after Client B
           else {
             newSegment = this.state.timeTravel.modifyPast(message.data.stepId, (oldTimeline) => {
-              // Cherry pick the old step
-              this.state.timeTravel.push(oldTimeline[0])
+              // Replay the previous action
+              this.dispatch(oldTimeline[0].intent)
               
               // Trigger the new intent
               this.dispatch(input);

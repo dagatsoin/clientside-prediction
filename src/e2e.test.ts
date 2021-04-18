@@ -46,7 +46,7 @@ function getPing(players: IClient[]) {
     + 200 // arbitrary server computation time
 }
 
-describe("API", function() {
+/* describe("API", function() {
   let players: IClient[] = [];
   let server: IServer<any>
   
@@ -67,12 +67,12 @@ describe("API", function() {
     // It contains all the server timeline
     expect(players[0].state.players.length).toBe(3)
     expect(server.state.timeTravel.getTimeline()).toEqual(players[0].state.timeTravel.getTimeline())
-  })
+  }, 1000000)
   test.todo("intent")
   test.todo("reduce")
   test.todo("rollback")
-})
-
+}) */
+/*
 describe("Create a room", function() {
   let players: IClient[] = [];
   let server: IServer<any>
@@ -106,16 +106,13 @@ describe("Create a room", function() {
 describe("Move animation", function () {
   let players: IClient[] = [];
   let server: IServer<any>
-  let ping: number = 0
-  let syncLatency: number = 0
 
   beforeAll(async () => {
-    const infra = (await startInfra(1));
+    const nbPlayers = 1
+    const infra = (await startInfra(nbPlayers));
     server = infra.server
     players = infra.players
-    syncLatency = getPing(players)
-    ping = getLatenceOf(players[0].state.playerId) * 2
-    return
+    return isGameReady(players, nbPlayers)
   });
 
   afterAll(function() {
@@ -238,7 +235,7 @@ describe("Move animation", function () {
       }
     });
   })
-});
+}); */
 
 /**
  * This test a basic problem of lag compensation when mixing
@@ -285,8 +282,7 @@ describe("Han moved first", function () {
     done()
   })
 
-/*   test("Check process", function(done) {
-    
+  test("Check process", function(done) {
     const listener = function(stepId: number) {
       console.log(stepId)
       if (stepId === 6) {
@@ -331,7 +327,7 @@ describe("Han moved first", function () {
         }
       });
     }, 40)
-  }, 1000000) */
+  }, 1000000)
 });
 /* 
 describe("Han shot first", function () {
