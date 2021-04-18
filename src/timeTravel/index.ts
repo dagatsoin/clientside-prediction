@@ -45,7 +45,7 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
       console.warn("can't fork at step", stepId)
     }
     // Don't mess with the base timeline
-    this.baseBranch = this.timeline.splice(stepId - this.initialState.stepId)
+    this.baseBranch = this.timeline.splice(stepId - this.initialState.stepId - 1)
     Object.freeze(this.baseBranch)
     transaction(this.baseBranch, this.timeline)
     this.baseBranch = undefined
@@ -74,7 +74,8 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
     const _step = Math.min(stepId, this.getCurrentStepId())
     // Keep the Map serialized by using JSON.parse
     const snapshot = JSON.parse(stringify(this.initialState.snapshot));
-    getPatchTo(this.timeline, this.initialState.stepId, _step - this.initialState.stepId).map((command) =>
+    const patch = getPatchTo(this.timeline, this.initialState.stepId, _step - this.initialState.stepId)
+    patch.forEach((command) =>
       applyJSONCommand(snapshot, command)
     );
     return snapshot

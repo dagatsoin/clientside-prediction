@@ -1,4 +1,4 @@
-import { computed, makeObservable } from "mobx";
+import { autorun, computed, makeObservable } from "mobx";
 import { Intent } from '../actions';
 import { IModel, SerializedWorld, World } from "../business/types";
 import { Dispatcher } from '../client/types';
@@ -47,9 +47,12 @@ class Representation implements IRepresentation {
     }
   }
 
+  private isReady = false
+
   constructor(
     private model: IModel<World, SerializedWorld>,
     private dispatch: Dispatcher,
+    onInit: ()=>void
   ) {
     this._timeTravel = createTimeTravel({ snapshot: model.snapshot, stepId: 0 }, []);
     makeObservable(this, {
@@ -58,12 +61,27 @@ class Representation implements IRepresentation {
     });
 
     useNap(this.model, this.timeTravel, this.stepListeners)
+
+    autorun(() => {
+      if (model.patch.length) {
+        // A snapshot has been used
+        if (
+          model.patch.some(command => command.path === "/") &&
+          !this.isReady
+        ) {
+          // The player has received the initial snapshot
+          this.isReady = true
+          onInit()
+        }
+      }
+    });
   }
 }
 
 export function createClientRepresentation(
   model: IModel<World, SerializedWorld>,
-  dispatch: Dispatcher
+  dispatch: Dispatcher,
+  onInit: () => void
 ) {
-  return new Representation(model, dispatch);
+  return new Representation(model, dispatch, onInit);
 }

@@ -89,10 +89,8 @@ export function useNap(
             timestamp: timeTravel.getLocalDeltaTime(),
             patch: model.patch
           });
-          if (currentStepId !== timeTravel.getCurrentStepId()) {
-            for (let listener of stepListeners) {
-              listener(timeTravel.getCurrentStepId())
-            }
+          for (let listener of stepListeners) {
+            listener(timeTravel.getCurrentStepId())
           }
         }
       });

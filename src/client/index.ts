@@ -14,8 +14,6 @@ class Client implements IClient {
     return this._dispatch;
   }
 
-  public onConnected = () => {}
-
   private getState = () => this._state
   private _state: IRepresentation;
   private _dispatch: Dispatcher;
@@ -23,6 +21,7 @@ class Client implements IClient {
 
   constructor(
     private readonly playerId: string,
+    private onConnected = (instance: Client) => {}
   ) {
     const model = createModel(playerId);
     
@@ -35,9 +34,8 @@ class Client implements IClient {
       this.socket
     );
       
-    this._state = createClientRepresentation(model, dispatch);
+    this._state = createClientRepresentation(model, dispatch, () => this.onConnected(this));
 
-    
     this.socket.onopen = () => {
       const socket = this.socket
       const send = socket.send;
@@ -48,7 +46,6 @@ class Client implements IClient {
         )
       }
       this.socket.send(stringify({type: "sync", data: { clientId: this.playerId }}))
-      this.onConnected()
     }
     this.socket.onerror = console.error
     this.socket.onmessage = onMessage
@@ -61,9 +58,8 @@ export async function init(
   playerID: string
 ): Promise<IClient> {
   return new Promise(function(r) {
-    const client = new Client(playerID)
-    client.onConnected = function() {
-      r(client)
-    }
+    const client = new Client(playerID, function(instance) {
+      r(instance)
+    })
   })
 }

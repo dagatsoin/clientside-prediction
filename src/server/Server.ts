@@ -32,6 +32,11 @@ class Server implements IServer<World> {
     this.server = http.createServer(app);
     this.wss = new WebSocket.Server({ server: this.server });
     
+    // Add an end point to get the initial snapshot
+    app.get('/snapshot', (_, res) => {
+      res.send(stringify(this.state.snapshot));
+    });
+
     this.wss.on('connection', (client: WebSocket, req) => {
       const id = getId(req.url)
       // For local developement, we wrap the send function to
@@ -80,9 +85,9 @@ class Server implements IServer<World> {
      * The client want to sync with the server.
      */
     if (message.type === "sync") {
-      const clients = getClients(message.data.clientId)
-      for (let client of clients) {
-        client.send(stringify({
+      const devices = getClients(message.data.clientId)
+      for (let device of devices) {
+        device.send(stringify({
           type: "sync",
           data: {
             snapshot: this.state.timeTravel.getInitalSnapshot(),
@@ -146,7 +151,8 @@ class Server implements IServer<World> {
             client.send(stringify({
               type: "rollback",
               data: {
-                to: message.data.stepId,
+                // The step to modify is the next one.
+                to: message.data.stepId + 1,
                 timeline: newSegment
               }
             } as ServerMessage))

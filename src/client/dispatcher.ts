@@ -16,7 +16,7 @@ export function createDispatcher(
   model: IModel<any, any>,
   // State is not created at when call this function
   getState: () => IRepresentation,
-  socket: WebSocket,
+  socket: WebSocket
 ): {
   onMessage(message: MessageEvent<string>): void;
   dispatch: Dispatcher;
@@ -33,7 +33,7 @@ export function createDispatcher(
        */ 
       if (message.type === "sync") {
         const intentsToResubmit: Intent[] = []
-        for (let i = message.data.stepId; i < timeTravel.getCurrentStepId(); i++) {
+        for (let i = message.data.stepId; i <= timeTravel.getCurrentStepId(); i++) {
           const step = timeTravel.get(i)
           if ("intent" in step) {
             intentsToResubmit.push(step.intent)
@@ -43,6 +43,7 @@ export function createDispatcher(
           stepId: message.data.stepId,
           snapshot: message.data.snapshot
         })
+        model.present(actions["hydrate"]({snapshot: message.data.snapshot}))
         intentsToResubmit.forEach(function(intent) {
           timeTravel.startStep(intent)
           model.present(actions[intent.type](intent.payload as any))
@@ -65,8 +66,9 @@ export function createDispatcher(
         timeTravel.modifyPast(message.data.to, function (oldBranch, newBranch) {
           newBranch.push(...message.data.timeline)
         })
-        // Rollback the model
-        model.present(actions.hydrate({snapshot: timeTravel.at(message.data.to), shouldRegisterStep: false }))
+        // Rollback the model to the step before the rollback target.
+        // If the rollback targets step 2, rollback to 1.
+        model.present(actions.hydrate({snapshot: timeTravel.at(message.data.to - 1), shouldRegisterStep: false }))
         // Replay the new section of the timeline by applying patch
         const patch = timeTravel.getPatchFromTo(message.data.to, timeTravel.getCurrentStepId())
         model.present(actions.applyPatch({commands: patch}))

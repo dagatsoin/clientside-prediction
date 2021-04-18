@@ -4,6 +4,20 @@ import { IClient } from "./client/types";
 import { getLatenceOf, setLatence } from './server/clientList';
 import { createServer, IServer } from './server/Server';
 
+function isGameReady(players: IClient[], nbPlayers: number) {
+  return Promise.all(players.map(function(player) {
+    return new Promise(function(r) {
+      const listener = () => {
+        const isReady = player.state.players.length === nbPlayers 
+        if (isReady) {
+          player.state.removeStepListener(listener)
+          r(undefined)
+        }
+      }
+      player.state.addStepListener(listener)
+    })
+  }))
+}
 
 async function startInfra(clientNb: number) {
   const players: IClient[] = [];
@@ -35,28 +49,24 @@ function getPing(players: IClient[]) {
 describe("API", function() {
   let players: IClient[] = [];
   let server: IServer<any>
-  let latence: number
-  beforeAll(async (done) => {
-    const infra = (await startInfra(3));
+  
+  beforeAll(async () => {
+    const nbPlayers = 3
+    const infra = (await startInfra(nbPlayers));
     players = infra.players
     server = infra.server
-    latence = getPing(players)
-    console.log(latence)
-    done();
+    return isGameReady(players, nbPlayers)
   });
 
   afterAll(function() {
     server.close()
   })
 
-  test("sync", function(done) {
+  test("sync", function() {
     // The sync command is sent at player creation.
     // It contains all the server timeline
-    setTimeout(function(){
-      expect(players[0].state.players.length).toBe(3)
-      expect(server.state.timeTravel.getTimeline()).toEqual(players[0].state.timeTravel.getTimeline())
-      done()
-    }, latence)
+    expect(players[0].state.players.length).toBe(3)
+    expect(server.state.timeTravel.getTimeline()).toEqual(players[0].state.timeTravel.getTimeline())
   })
   test.todo("intent")
   test.todo("reduce")
@@ -66,36 +76,30 @@ describe("API", function() {
 describe("Create a room", function() {
   let players: IClient[] = [];
   let server: IServer<any>
-  let ping: number = 0
 
-  beforeAll(async (done) => {
-    const infra = (await startInfra(3));
+  beforeAll(async () => {
+    const nbPlayers = 3
+    const infra = (await startInfra(nbPlayers));
     server = infra.server
     players = infra.players
-    done();
-    ping = getPing(players)
+    return isGameReady(players, nbPlayers)
   });
 
   afterAll(function() {
     server.close()
   })
 
-  test("All players know each others", function(done) {
-    setTimeout(function(){
-      expect(players[0].state.players.length).toBe(3)
-      expect(players[1].state.players.length).toBe(3)
-      expect(players[2].state.players.length).toBe(3)
-      done()
-    }, ping)
+  test("All players know each others", function() {
+    expect(players[0].state.players.length).toBe(3)
+    expect(players[1].state.players.length).toBe(3)
+    expect(players[2].state.players.length).toBe(3)
   })
 
   test("Players are sync with the server", function() {
-    setTimeout(function(){
-      expect(players[0].state.stepId).toBe(3)
-      expect(players[1].state.stepId).toBe(3)
-      expect(players[2].state.stepId).toBe(3)
-      expect(server.state.stepId).toBe(3)
-    }, ping)
+    expect(players[0].state.stepId).toBe(3)
+    expect(players[1].state.stepId).toBe(3)
+    expect(players[2].state.stepId).toBe(3)
+    expect(server.state.stepId).toBe(3)
   })
 })
 
@@ -111,6 +115,7 @@ describe("Move animation", function () {
     players = infra.players
     syncLatency = getPing(players)
     ping = getLatenceOf(players[0].state.playerId) * 2
+    return
   });
 
   afterAll(function() {
@@ -254,28 +259,52 @@ describe("Move animation", function () {
  * The server will simply compare who was the fatest to respond to the new step.
  */
 
-/* describe("Han moved first", function () {
+describe("Han moved first", function () {
   let players: IClient[] = [];
   let server: IServer<any>
   let ping: number = 0
-
+  
   beforeAll(async () => {
-    const infra = (await startInfra(2));
+    const nbPlayers = 2
+    const infra = (await startInfra(nbPlayers));
     setLatence("Player0", 300)
     setLatence("Player1", 30)
     server = infra.server
     players = infra.players
     ping = getPing(players)
-  });
+    // Wait for the game to be populated
+    return isGameReady(players, nbPlayers)
+  }, 1000000);
 
   afterAll(function() {
     server.close()
   })
-  test("Initial state", function() {
+  test("Initial state", function(done) {
     expect(players[0].state.player.position.x).toBe(0)
     expect(players[1].state.player.position.x).toBe(0)
+    done()
   })
-  test("Check process", function(done) {
+
+/*   test("Check process", function(done) {
+    
+    const listener = function(stepId: number) {
+      console.log(stepId)
+      if (stepId === 6) {
+        try {
+          expect(players[0].state.stepId).toBe(6)
+          expect(players[1].state.stepId).toBe(6)
+          expect(players[0].state.player.isAlive).toBeTruthy()
+          expect(players[1].state.player.ammo).toBe(0)
+          done()
+        } catch(e) {
+          done(e)
+        } finally {
+          players[0].state.removeStepListener(listener)
+        }
+      }
+    }
+    players[0].state.addStepListener(listener)
+
     // Setup the scene, place players 
     players[0].dispatch({
       type: "moveUp",
@@ -302,16 +331,9 @@ describe("Move animation", function () {
         }
       });
     }, 40)
-    setTimeout(function() {
-      expect(players[0].state.stepId).toBe(6)
-      expect(players[1].state.stepId).toBe(6)
-      expect(players[0].state.player.isAlive).toBeTruthy()
-      expect(players[1].state.player.ammo).toBe(0)
-      done()
-    }, ping + 140)
-  })
+  }, 1000000) */
 });
-
+/* 
 describe("Han shot first", function () {
   let players: IClient[] = [];
   let server: IServer<any>
