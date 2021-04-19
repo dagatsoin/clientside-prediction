@@ -64,7 +64,7 @@ export function createDispatcher(
       else if (message.type === "rollback") {
         // Merge the server timeline in the local timeline.
         timeTravel.modifyPast(message.data.to, function (oldBranch, newBranch) {
-          newBranch.push(...message.data.timeline)
+          newBranch.push(...message.data.timeline, ...oldBranch.slice(message.data.timeline.length))
         })
         // Rollback the model to the step before the rollback target.
         // If the rollback targets step 2, rollback to 1.
