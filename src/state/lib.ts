@@ -8,6 +8,7 @@ import {
   BasicMutationType,
   JSONCommand,
   JSONOperation,
+  Remove,
   Replace
 } from "../business/lib/types";
 import { Animation, IEntity, IModel, Position, SerializedWorld, World } from "../business/types";
@@ -23,6 +24,17 @@ export function didStartAnimation(
 ): command is Replace<Animation> {
   return (
     command.op === JSONOperation.replace &&
+    /\/transform\/(position|rotation|scale)\/animation\/(x|y|z)$/.test(
+      command.path
+    )
+  );
+}
+
+export function didRemoveAnimation(
+  command: JSONCommand
+): command is Remove {
+  return (
+    command.op === JSONOperation.remove &&
     /\/transform\/(position|rotation|scale)\/animation\/(x|y|z)$/.test(
       command.path
     )
@@ -76,30 +88,50 @@ export function updatePlayersRepresentation(
   return currentPlayers;
 }
 
-export function useNap(
+export function useNap({
+  model, timeTravel, stepListeners
+}: {
   model: IModel<World, SerializedWorld>,
   timeTravel: ITimeTravel<Intent, SerializedWorld>,
-  stepListeners: Array<(stepId: number) => void>
-) {
-      // NAP
-      autorun(() => {
-        if (model.patch.length) {
-          const currentStepId = timeTravel.getCurrentStepId()
-          timeTravel.commitStep({
-            timestamp: timeTravel.getLocalDeltaTime(),
-            patch: model.patch
-          });
-          for (let listener of stepListeners) {
-            listener(timeTravel.getCurrentStepId())
-          }
-        }
+  stepListeners: Array<(stepId: number) => void>,
+}): (stepId: number) => string[] {
+  /**
+   * A list of running animations property paths maintened by
+   * the animation cleaner NAP.
+   * The animation ID is the step which it started at.
+   * Therefore, there can be multiple animation with same id.
+   */
+  const animations: Map<string, { stepId: number, timer: any }> = new Map()
+
+  // NAP
+
+  // Add a new step in the timetraveler.
+  // Trigger this NAP first to make sure that subsequent NAP
+  // get the right new step number
+  autorun(() => {
+    if (model.patch.length) {
+      timeTravel.commitStep({
+        timestamp: timeTravel.getLocalDeltaTime(),
+        patch: model.patch
       });
-  
-      // Clean animation
-      autorun(() => {
-        model.patch.filter(didStartAnimation).forEach((mutation) => {
-          setTimeout(
-            () => {
+      for (let listener of stepListeners) {
+        listener(timeTravel.getCurrentStepId())
+      }
+    }
+  });
+
+  // Animation
+  autorun(() => {
+    model.patch.filter(didStartAnimation).forEach((mutation) => {
+      // An animations started
+      // Store the animated path
+
+      animations.set(
+        mutation.path,
+        {
+          stepId: timeTravel.getCurrentStepId(),
+          timer: setTimeout(
+            function() {
               timeTravel.startStep({}as any)
               model.present({
                 mutations: [
@@ -111,25 +143,37 @@ export function useNap(
                     }
                   },
                   mutation.value.to
-                    ? {
-                        type: BasicMutationType.jsonCommand,
-                        payload: {
-                          op: JSONOperation.replace,
-                          path: mutation.path.replace("animation", "initial"),
-                          value: mutation.value.to
-                        }
-                      }
-                    : {
-                        type: BasicMutationType.incBy,
-                        payload: {
-                          path: mutation.path.replace("animation", "initial"),
-                          amount: mutation.value.delta!
-                        }
-                      }
+                  ? {
+                    type: BasicMutationType.jsonCommand,
+                    payload: {
+                      op: JSONOperation.replace,
+                      path: mutation.path.replace("animation", "initial"),
+                      value: mutation.value.to
+                    }
+                  }
+                  : {
+                    type: BasicMutationType.incBy,
+                    payload: {
+                      path: mutation.path.replace("animation", "initial"),
+                      amount: mutation.value.delta!
+                    }
+                  }
                 ]
-              }),
+              })
+            },
             mutation.value.duration
-          });
-        });
-      });
+          )
+        }
+      )
+    });
+
+    model.patch.filter(didRemoveAnimation).forEach((mutation) => {
+      clearTimeout(animations.get(mutation.path)?.timer)
+      animations.delete(mutation.path)
+    })
+  });
+  
+  return function getPathsFromStep(id: number): string[] {
+    return Array.from(animations).filter(([_, {stepId}]) => stepId === id).map(([path]) => path)
+  }
 }

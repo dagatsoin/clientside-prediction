@@ -45,12 +45,12 @@ function getPing(players: IClient[]) {
     * 2 // Back and forth
     + 200 // arbitrary server computation time
 }
-
-/* describe("API", function() {
+/*
+describe("API", function() {
   let players: IClient[] = [];
   let server: IServer<any>
   
-  beforeAll(async () => {
+  beforeEach(async () => {
     const nbPlayers = 3
     const infra = (await startInfra(nbPlayers));
     players = infra.players
@@ -58,7 +58,7 @@ function getPing(players: IClient[]) {
     return isGameReady(players, nbPlayers)
   });
 
-  afterAll(function() {
+  afterEach(function() {
     server.close()
   })
 
@@ -68,10 +68,11 @@ function getPing(players: IClient[]) {
     expect(players[0].state.players.length).toBe(3)
     expect(server.state.timeTravel.getTimeline()).toEqual(players[0].state.timeTravel.getTimeline())
   }, 1000000)
+
   test.todo("intent")
   test.todo("reduce")
   test.todo("rollback")
-}) */
+})
 /*
 describe("Create a room", function() {
   let players: IClient[] = [];
@@ -102,8 +103,8 @@ describe("Create a room", function() {
     expect(server.state.stepId).toBe(3)
   })
 })
-
-describe("Move animation", function () {
+*/
+/* describe("Move animation", function () {
   let players: IClient[] = [];
   let server: IServer<any>
 
@@ -231,11 +232,77 @@ describe("Move animation", function () {
       type: "translateRight",
       payload: {
         playerId: players[0].state.playerId,
-        delta: 10
+        delta: 10,
       }
     });
   })
 }); */
+
+describe("Cancel a move animation", function () {
+  let players: IClient[] = [];
+  let server: IServer<any>
+
+  beforeAll(async () => {
+    const nbPlayers = 1
+    const infra = (await startInfra(nbPlayers));
+    server = infra.server
+    players = infra.players
+    return isGameReady(players, nbPlayers)
+  });
+
+  afterAll(function() {
+    server.close()
+  })
+  
+  test("Initial state", function () {
+    expect(players[0].state.player.position.x).toBe(0)
+  });
+  test("Check process", function (done) {
+    
+     // Server received the start animation intent
+     const serverCanceledAnimationListener = function(stepId: number){
+      if (stepId === 3) {
+        try {
+          expect(
+            server
+            .state
+            .timeTravel.at(3)
+            .entities.value[0][1]
+            .transform
+            .position
+            .animation.x
+          ).toBeUndefined();
+          server.state.removeStepListener(serverCanceledAnimationListener)
+          done()
+        } catch(e) {
+          done(e)
+        }
+      }
+    }
+    server.state.addStepListener(serverCanceledAnimationListener)
+
+    const animationStep = players[0].state.stepId + 1
+
+    players[0].dispatch({
+      type: "translateRight",
+      payload: {
+        playerId: players[0].state.playerId,
+        delta: 10,
+        duration: 5000
+      }
+    });
+    setTimeout(function() {
+      players[0].dispatch({
+        type: "cancelAnimations",
+        payload: { paths: players[0].state.getStartedAnimationPathAtStep(animationStep) }
+      })
+      setTimeout(function() {
+        expect(players[0].state.player.position.x).toBe(0) 
+      })
+    }, 20);
+  }, 100000)
+});
+
 
 /**
  * This test a basic problem of lag compensation when mixing
@@ -256,7 +323,7 @@ describe("Move animation", function () {
  * The server will simply compare who was the fatest to respond to the new step.
  */
 
-describe("Han moved first", function () {
+/* describe("Han moved first", function () {
   let players: IClient[] = [];
   let server: IServer<any>
   let ping: number = 0
@@ -285,6 +352,7 @@ describe("Han moved first", function () {
   test("Check process", function(done) {
     const listener = function(stepId: number) {
       console.log(stepId)
+      // timeline should be: add, add, moveup, translate, stoptranslate, shot
       if (stepId === 6) {
         try {
           expect(players[0].state.stepId).toBe(6)
@@ -295,11 +363,11 @@ describe("Han moved first", function () {
         } catch(e) {
           done(e)
         } finally {
-          players[0].state.removeStepListener(listener)
+          players[1].state.removeStepListener(listener)
         }
       }
     }
-    players[0].state.addStepListener(listener)
+    players[1].state.addStepListener(listener)
 
     // Setup the scene, place players 
     players[0].dispatch({
@@ -328,7 +396,7 @@ describe("Han moved first", function () {
       });
     }, 40)
   }, 1000000)
-});
+}); */
 /* 
 describe("Han shot first", function () {
   let players: IClient[] = [];

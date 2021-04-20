@@ -9,7 +9,7 @@ import { IPlayer, IServerRepresentation } from './types';
 
 class Representation implements IServerRepresentation {
   public timeTravel: ITimeTravel<Intent, SerializedWorld>;
-  private stepListeners: Array<(stepId: number) => void> = []
+  public stepListeners: Array<(stepId: number) => void> = []
   public addStepListener(listener: (stepId: number) => void) {
     this.stepListeners.push(listener)
   }
@@ -20,15 +20,21 @@ class Representation implements IServerRepresentation {
       this.stepListeners.splice(index, 1)
     }
   }
+  public getStartedAnimationPathAtStep: (stepId: number) => string[];
+
   constructor(
-    private model: IModel<World, SerializedWorld>
+    public model: IModel<World, SerializedWorld>
   ) {
     this.timeTravel = createTimeTravel({snapshot: model.snapshot, stepId: 0}, []);
     makeObservable<this, "players">(this, {
       players: computed,
       stepId: computed
     });
-    useNap(this.model, this.timeTravel, this.stepListeners)
+    this.getStartedAnimationPathAtStep = useNap({
+      model: this.model,
+      stepListeners: this.stepListeners,
+      timeTravel: this.timeTravel
+    })
   }
   
   get stepId() {

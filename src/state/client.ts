@@ -1,5 +1,5 @@
 import { autorun, computed, makeObservable } from "mobx";
-import { Intent } from '../actions';
+import { actions, Intent } from '../actions';
 import { IModel, SerializedWorld, World } from "../business/types";
 import { Dispatcher } from '../client/types';
 import { createTimeTravel } from "../timeTravel";
@@ -35,10 +35,12 @@ class Representation implements IRepresentation {
     return this.timeTravel.getCurrentStepId();
   }
 
-  private stepListeners: Array<(stepId: number) => void> = []
+  public stepListeners: Array<(stepId: number) => void> = []
   public addStepListener(listener: (stepId: number) => void) {
     this.stepListeners.push(listener)
   }
+  
+  public getStartedAnimationPathAtStep: (stepId: number) => string[];
 
   public removeStepListener(listener: (stepId: number) => void) {
     const index = this.stepListeners.indexOf(listener)
@@ -50,7 +52,7 @@ class Representation implements IRepresentation {
   private isReady = false
 
   constructor(
-    private model: IModel<World, SerializedWorld>,
+    public model: IModel<World, SerializedWorld>,
     private dispatch: Dispatcher,
     onInit: ()=>void
   ) {
@@ -60,7 +62,11 @@ class Representation implements IRepresentation {
       players: computed
     });
 
-    useNap(this.model, this.timeTravel, this.stepListeners)
+    this.getStartedAnimationPathAtStep = useNap({
+      model: this.model,
+      stepListeners: this.stepListeners,
+      timeTravel: this.timeTravel
+    })
 
     autorun(() => {
       if (model.patch.length) {

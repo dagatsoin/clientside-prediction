@@ -129,6 +129,8 @@ class Server implements IServer<World> {
             })
           }
           // Case 2: Client A triggered the action after Client B
+
+          // TODO cancel NAPed animation when rollback
           else {
             newSegment = this.state.timeTravel.modifyPast(message.data.stepId, (oldTimeline) => {
               // Replay the previous action

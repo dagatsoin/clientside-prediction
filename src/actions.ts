@@ -88,10 +88,12 @@ const moveLeft = ({ playerId }: { playerId: string }): Proposal => ({
 
 const translateRight = ({
   playerId,
-  delta
+  delta,
+  duration = 200
 }: {
   playerId: string;
   delta: number;
+  duration?: number
 }): Proposal => ({
   mutations: [
     {
@@ -102,13 +104,23 @@ const translateRight = ({
         value: {
           startedAt: Date.now(),
           bezier: [0, 0, 1, 1],
-          duration: 100,
+          duration: duration,
           delta
         }
       }
     }
   ]
 });
+
+const cancelAnimations = ({paths}: {paths: string[]}) => ({
+  mutations: paths.map(path => ({
+    type: BasicMutationType.jsonCommand,
+    payload: {
+      op: JSONOperation.remove,
+      path
+    }
+  }))
+})
 
 const shot = ({
   shoter,
@@ -141,6 +153,7 @@ export const actions = {
   applyPatch,
   addPlayer,
   hydrate,
+  cancelAnimations,
   moveUp,
   moveRight,
   moveDown,
@@ -185,7 +198,11 @@ export type Intent =
     }
   | {
       type: "translateRight";
-      payload: Readonly<{ playerId: string; delta: number }>;
+      payload: Readonly<{ playerId: string; delta: number; duration?: number }>;
+    }
+  | {
+      type: "cancelAnimations";
+      payload: { paths: string[] }
     }
   | {
       type: "shot";

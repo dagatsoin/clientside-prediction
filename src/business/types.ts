@@ -36,6 +36,7 @@ export type AnimatedPosition = Partial<{
 }>;
 
 export type Animation = {
+  id: number;
   bezier: [number, number, number, number];
   startedAt: number;
   duration: number;

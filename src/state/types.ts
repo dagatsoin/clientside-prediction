@@ -11,6 +11,7 @@ export interface IRepresentation {
   readonly timeTravel: ITimeTravel<Intent, SerializedWorld>;
   addStepListener(listener: (stepId: number) => void): void
   removeStepListener(listener: (stepId: number) => void): void
+  getStartedAnimationPathAtStep: (stepId: number) => string[];
 }
 
 export interface IServerRepresentation {
@@ -21,6 +22,7 @@ export interface IServerRepresentation {
   readonly timeTravel: ITimeTravel<Intent, SerializedWorld>;
   addStepListener(listener: (stepId: number) => void): void
   removeStepListener(listener: (stepId: number) => void): void
+  getStartedAnimationPathAtStep: (stepId: number) => string[];
 }
 
 export interface IPlayer {

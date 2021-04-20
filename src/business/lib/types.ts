@@ -40,7 +40,7 @@ type Add = {
   value: any;
 };
 
-type Remove = {
+export type Remove = {
   op: JSONOperation.remove;
   path: string;
 };

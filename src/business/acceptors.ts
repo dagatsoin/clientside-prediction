@@ -1,3 +1,4 @@
+import { applyJSONCommand } from './lib/acceptors';
 import { ApplyCommand, Decrement, Increment } from "./lib/types";
 import { Position, Vector2D } from './types';
 
@@ -6,7 +7,8 @@ export enum MutationType {
   decrement = "decrement",
   restore = "reset",
   setTimelineLength = "setTimelineLength",
-  hitScan = "hitScan"
+  hitScan = "hitScan",
+  removeAnimation = "removeAnimation"
 }
 
 type HitScan = {
