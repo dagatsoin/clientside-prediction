@@ -112,7 +112,7 @@ const translateRight = ({
   ]
 });
 
-const cancelAnimations = ({paths}: {paths: string[]}) => ({
+const cancelAnimations = ({paths}: {paths: string[]}): Proposal => ({
   mutations: paths.map(path => ({
     type: BasicMutationType.jsonCommand,
     payload: {
@@ -202,7 +202,7 @@ export type Intent =
     }
   | {
       type: "cancelAnimations";
-      payload: { paths: string[] }
+      payload: Readonly<{ paths: ReadonlyArray<string> }>
     }
   | {
       type: "shot";
