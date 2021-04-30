@@ -17,27 +17,31 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
     snapshot: S
     timestamp: number
     stepId: number
-  }, private timeline: Timeline<I>){}
+  }, private timeline: Timeline<I>){
+    this.stepTimer = this.initialState.timestamp
+  }
 
   getTimeline() {
     return [...this.timeline]
   }
-  startStep(intent: I): void {
-    this.newIntent = intent
+  startStep(intent: I): number {
+    const timestamp = this.getLocalDeltaTime()
+    this.pendingTransaction = {intent, timestamp }
+    return timestamp
   }
   abortStep(): void {
-    this.newIntent = undefined
+    this.pendingTransaction = undefined
   }
-  commitStep(data: { timestamp: number; patch: readonly JSONCommand[]; }): void {
-    if (!this.newIntent) {
+  commitStep(patch: readonly JSONCommand[]): void {
+    if (!this.pendingTransaction) {
       return
     }
-    this.push({intent: this.newIntent, ...data})
-    this.newIntent = undefined
+    this.push({intent: {...this.pendingTransaction.intent}, timestamp: this.pendingTransaction.timestamp, patch})
+    this.pendingTransaction = undefined
   }
   
-  private newIntent: I | undefined
-  private stepTimer: number = Date.now();
+  private pendingTransaction: {intent: I, timestamp: number } | undefined
+  private stepTimer: number;
   
   forkPast(fromStep: number, transaction: (oldBranch: Readonly<Timeline<I>>, newBranch: Timeline<I>) => void) {
     let oldBranch: Timeline<I> | undefined

@@ -12,22 +12,20 @@ export interface ITimeTravel<I, T> {
   /**
    * Start a step which can be still aborted.
    * This will prepare a new object with the triggered intent.
+   * Return the time elapsed since the start of the current step.
    */
-  startStep(intent: I): void;
+  startStep(intent: I): number;
   /**
    * Use this function to cancel a step.
    * It will clean the temporary new step
    */
   abortStep(): void
   /**
-   * Add a step to the timeline.
-   * The step is composed by the temporary object
-   * containing the intent, the timestamp and the patch
+   * Commit a new step to the timeline.
+   * The timestamp and the intent is already known since the start of the step.
+   * This function take the resulting patch of the operation.
    */
-  commitStep(data:{
-    timestamp: number
-    patch: ReadonlyArray<JSONCommand>
-  }): void
+  commitStep(patch: ReadonlyArray<JSONCommand>): void
   /**
    * Start a transaction to modify the past at the given stepId.
    * Return the modified segment.

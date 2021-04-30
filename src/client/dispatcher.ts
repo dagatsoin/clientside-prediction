@@ -85,10 +85,10 @@ export function createDispatcher(
     dispatch(intent: Intent) {
       const { stepId: cStep, timeTravel } = getState();
       // Backup intent to write the next step
-      timeTravel.startStep(intent)
+      const timestamp = timeTravel.startStep(intent)
       const stepId = cStep;
       const data = stringify({type: "intent", data: {
-        timestamp: timeTravel.getLocalDeltaTime(),
+        timestamp,
         clientId,
         stepId,
         ...intent

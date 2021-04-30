@@ -61,14 +61,11 @@ describe("Add a new step", function() {
       payload: {playerId: "Player2"}
     })
     
-    timeTraveler.commitStep({
-      timestamp: timeTraveler.getLocalDeltaTime(),
-      patch: [{
-        op: JSONOperation.add,
-        path: "/entities/1",
-        value: "Player1"
-      }]
-    })
+    timeTraveler.commitStep([{
+      op: JSONOperation.add,
+      path: "/entities/1",
+      value: "Player1"
+    }])
     expect(timeTraveler.getCurrentStepId()).toBe(2)
   })
   test("By push", function() {

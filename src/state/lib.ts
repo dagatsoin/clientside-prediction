@@ -73,7 +73,6 @@ class Player implements IPlayer {
 
 
 const createPlayer = createTransformer((entity: IEntity) => {
-  console.log("recompute", entity.name);
   return new Player(entity);
 });
 
@@ -110,10 +109,7 @@ export function useNap({
   // get the right new step number
   autorun(() => {
     if (model.patch.length) {
-      timeTravel.commitStep({
-        timestamp: timeTravel.getLocalDeltaTime(),
-        patch: model.patch
-      });
+      timeTravel.commitStep(model.patch);
       for (let listener of stepListeners) {
         listener(timeTravel.getCurrentStepId())
       }
