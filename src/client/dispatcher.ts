@@ -63,12 +63,12 @@ export function createDispatcher(
        */
       else if (message.type === "rollback") {
         // Merge the server timeline in the local timeline.
-        timeTravel.modifyPast(message.data.to, function (oldBranch, newBranch) {
+        timeTravel.forkPast(message.data.to, function (oldBranch, newBranch) {
           newBranch.push(...message.data.timeline, ...oldBranch.slice(message.data.timeline.length))
         })
         // Rollback the model to the step before the rollback target.
         // If the rollback targets step 2, rollback to 1.
-        model.present(actions.hydrate({snapshot: timeTravel.at(message.data.to - 1), shouldRegisterStep: false }))
+        model.present(actions.hydrate({snapshot: timeTravel.at(message.data.to), shouldRegisterStep: false }))
         // Replay the new section of the timeline by applying patch
         const patch = timeTravel.getPatchFromTo(message.data.to, timeTravel.getCurrentStepId())
         model.present(actions.applyPatch({commands: patch}))

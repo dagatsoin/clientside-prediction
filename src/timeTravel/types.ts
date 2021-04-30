@@ -32,7 +32,25 @@ export interface ITimeTravel<I, T> {
    * Start a transaction to modify the past at the given stepId.
    * Return the modified segment.
    */
-  modifyPast(stepId: number, transaction: (oldBranch: Readonly<Timeline<I>>, newTimeline: Timeline<I>) => void): Timeline<I>
+  forkPast(
+    /**
+     * The landing step to return in the past
+     */
+    fromStep: number,
+    /**
+     * The operation to applied to the past.
+     */
+    transaction: (
+      /**
+       * The immutable old branch begins after the given stepId
+       */
+      oldBranch: Readonly<Timeline<I>>,
+      /**
+       * The new timeline to operate the changes
+       */
+      newTimeline: Timeline<I>
+    ) => void
+  ): Timeline<I>
   /**
    * Return the current stepId number
    */
@@ -60,7 +78,19 @@ export interface ITimeTravel<I, T> {
    */
   push(...steps: Step<I>[]): void;
   /**
-   * Return the patch at the given timeline step
+   * Return a portion of the timeline
+   * The start index will be included.
+   * The end index will be excluded. Default will include the rest of the timeline.
+   */
+  slice(start: number, end?: number): Array<Step<I> | {
+    timestamp: number;
+    patch: ReadonlyArray<JSONCommand>;
+  }>
+
+  /**
+   * Return a portion of the timeline
+   * The start index will be included.
+   * The end index will be included. Default to current step id.
    */
   get(stepId: number): Step<I> | {
     timestamp: number;

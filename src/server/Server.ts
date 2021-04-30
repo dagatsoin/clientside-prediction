@@ -115,32 +115,34 @@ class Server implements IServer<World> {
             }
           })
           let newSegment: Timeline<Intent>
-          // Case 1: Client A has more latency but triggered the action before Client B
-          if (message.data.timestamp < this.state.timeTravel.get(message.data.stepId).timestamp) {
-            newSegment = this.state.timeTravel.modifyPast(message.data.stepId, (oldTimeline) => {
+          // Case 1: The incoming message from client A was triggered at step S
+          // Another client B has already fired action for step S and LATER than A.
+          // We will return back to S-1 (so before B action) for dispatching A intent and replay the rest of the timeline.
+          // TODO cancel NAPed animation when rollback
+          const timeStampForStepS = this.state.timeTravel.get(message.data.stepId + 1).timestamp
+          if (message.data.timestamp < timeStampForStepS) {
+            newSegment = this.state.timeTravel.forkPast(message.data.stepId, (oldTimeline) => {
               // Insert the input action in the new timeline
               this.dispatch(input)
               
               // Then replay all the old timeline actions
-              for (let i = message.data.stepId; i < oldTimeline.length; i++) {
+              for (let i = 0; i < oldTimeline.length; i++) {
                 const { intent } = oldTimeline[i]
                 this.dispatch(intent)
               }
             })
           }
-          // Case 2: Client A triggered the action after Client B
-
+          // Case 2: The incoming message from client A was triggered at step S.
+          // Another client B has already fired action for step S and SOONER than A.
+          // We will return back to S (so after B action) for dispatching A intent and replay the rest of the timeline.
           // TODO cancel NAPed animation when rollback
           else {
-            newSegment = this.state.timeTravel.modifyPast(message.data.stepId, (oldTimeline) => {
-              // Replay the previous action
-              this.dispatch(oldTimeline[0].intent)
-              
+            newSegment = this.state.timeTravel.forkPast(message.data.stepId + 1, (oldTimeline) => {
               // Trigger the new intent
               this.dispatch(input);
 
               // Then replay all the old timeline actions
-              for (let i = message.data.stepId + 1; i < oldTimeline.length; i++) {
+              for (let i = 0; i < oldTimeline.length; i++) {
                 const { intent } = oldTimeline[i]
                 this.dispatch(intent);
               }
@@ -154,7 +156,7 @@ class Server implements IServer<World> {
               type: "rollback",
               data: {
                 // The step to modify is the next one.
-                to: message.data.stepId + 1,
+                to: message.data.stepId,
                 timeline: newSegment
               }
             } as ServerMessage))
@@ -169,7 +171,7 @@ class Server implements IServer<World> {
         // Trigger the client action
         this.dispatch(input)
         if (this.model.patch.length) {
-          console.info(`New server step ${this.state.timeTravel.getCurrentStepId()}`, this.state.timeTravel.get(this.state.timeTravel.getCurrentStepId()))
+          console.info(`New server step ${this.state.timeTravel.getCurrentStepId()}`, this.state.timeTravel.slice(this.state.timeTravel.getCurrentStepId()))
           forAllClients((client, id) => {   
             if (id !== input.clientId) {
               client.send(stringify({
@@ -180,8 +182,11 @@ class Server implements IServer<World> {
               client.send(stringify({
                 type: "rollback",
                 data: {
-                  to: this.state.stepId,
-                  timeline: [this.state.timeTravel.get(this.state.stepId)]
+                  // Rollback the client to the step where it dispatched this message.
+                  to: input.stepId,
+                  /// Grab all the step created by this message (remember that one message
+                  // could create multiple steps if some NAPs are involved)
+                  timeline: this.state.timeTravel.slice(input.stepId + 1)
                 }
               } as ServerMessage))
             }
@@ -201,7 +206,7 @@ export function createServer() {
   return new Server();
 }
 function isAllowedAction(type: Intent["type"], stepId: number) {
-  return type === "addPlayer"
+  return true
 }
 
 function getId(url: any): string {

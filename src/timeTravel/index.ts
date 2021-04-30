@@ -1,5 +1,5 @@
 import { applyJSONCommand } from "../business/lib/acceptors";
-import { parse, stringify } from '../business/lib/JSON';
+import { stringify } from '../business/lib/JSON';
 import { JSONCommand, JSONOperation } from "../business/lib/types";
 import { Step } from "../business/types";
 import { ITimeTravel, Timeline } from "./types";
@@ -38,19 +38,39 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
   
   private newIntent: I | undefined
   private stepTimer: number = Date.now();
-  private baseBranch: Timeline<I> | undefined
-
-  modifyPast(stepId: number, transaction: (baseBranch: Readonly<Timeline<I>>, newBranch: Timeline<I>) => void) {
-    if (stepId - this.initialState.stepId > this.timeline.length) {
-      console.warn("can't fork at step", stepId)
+  
+  forkPast(fromStep: number, transaction: (oldBranch: Readonly<Timeline<I>>, newBranch: Timeline<I>) => void) {
+    let oldBranch: Timeline<I> | undefined
+    
+    // The timeline is not a 0 based index.
+    // Need to find the index of the given step.
+    // This index will be the start of the modified past segment.
+    // IMPORTANT: it will be one step after the given fromStep
+    // because the user will land one step before.
+    const oldBranchStartIndex = fromStep - this.initialState.stepId
+    
+    if (oldBranchStartIndex > this.timeline.length) {
+      console.warn("Can't fork. The given step is in an unknown future.", fromStep)
+      return []
+    } else if (fromStep < this.initialState.stepId) {
+      console.warn("Can't fork. The given step is in an immutable past.", fromStep)
+      return []
     }
-    // Don't mess with the base timeline
-    this.baseBranch = this.timeline.splice(stepId - this.initialState.stepId - 1)
-    Object.freeze(this.baseBranch)
-    transaction(this.baseBranch, this.timeline)
-    this.baseBranch = undefined
+    // The old branch starts at the next step after the given step in the past
+    // until the end of the current timeline.
+    oldBranch = this.timeline.splice(oldBranchStartIndex)
+ 
+    // Don't mess with the old timeline branch
+    Object.freeze(oldBranch)
+    
+    // The user is now in the past and is modifying it
+    transaction(oldBranch, this.timeline)
+
+    // Assuming that the current step is restarting. We need to reset the timer.
     this.resetTimer()
-    return this.timeline.slice(stepId - this.initialState.stepId)
+
+    // Return the new timeline segment from the given landing step.
+    return this.timeline.slice(oldBranchStartIndex)
   }
   
   getBaseBranch(): Timeline<I> {
@@ -87,6 +107,31 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
 
   getLocalDeltaTime(): number {
     return Date.now() - this.stepTimer
+  }
+
+  slice(
+    start: number,
+    end: number = this.getCurrentStepId() + 1
+  ) {
+    const ret: Array<Step<I> | {
+      timestamp: number;
+      patch: ReadonlyArray<JSONCommand>;
+    }> = start === this.initialState.stepId 
+      ? [{
+          timestamp: 0,
+          patch: [{
+            op: JSONOperation.replace,
+            path: "/",
+            value: this.getInitalSnapshot()
+          } as JSONCommand]
+        }]
+      : []
+    return ret.concat(
+      this.timeline.slice(
+        start - this.initialState.stepId - 1, // index of the step in the timeline
+        end - this.initialState.stepId - 1 // index of the ending step in the timeline
+      )
+    );
   }
 
   get(stepId: number): 

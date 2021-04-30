@@ -45,7 +45,7 @@ function getPing(players: IClient[]) {
     * 2 // Back and forth
     + 200 // arbitrary server computation time
 }
-/*
+
 describe("API", function() {
   let players: IClient[] = [];
   let server: IServer<any>
@@ -236,7 +236,7 @@ describe("Create a room", function() {
       }
     });
   })
-}); */
+});
 
 describe("Cancel a move animation", function () {
   let players: IClient[] = [];
@@ -301,7 +301,7 @@ describe("Cancel a move animation", function () {
       })
     }, 20);
   }, 100000)
-});
+}); */
 
 
 /**
@@ -322,11 +322,10 @@ describe("Cancel a move animation", function () {
  * Greedo shot Han 100ms after receiving the step.
  * The server will simply compare who was the fatest to respond to the new step.
  */
-
-/* describe("Han moved first", function () {
+/* 
+describe("Han moved first", function () {
   let players: IClient[] = [];
   let server: IServer<any>
-  let ping: number = 0
   
   beforeAll(async () => {
     const nbPlayers = 2
@@ -335,7 +334,6 @@ describe("Cancel a move animation", function () {
     setLatence("Player1", 30)
     server = infra.server
     players = infra.players
-    ping = getPing(players)
     // Wait for the game to be populated
     return isGameReady(players, nbPlayers)
   }, 1000000);
@@ -351,9 +349,9 @@ describe("Cancel a move animation", function () {
 
   test("Check process", function(done) {
     const listener = function(stepId: number) {
-      console.log(stepId)
+      console.log(stepId, server.state)
       // timeline should be: add, add, moveup, translate, stoptranslate, shot
-      if (stepId === 6) {
+      if (stepId === 8) {
         try {
           expect(players[0].state.stepId).toBe(6)
           expect(players[1].state.stepId).toBe(6)
@@ -367,7 +365,7 @@ describe("Cancel a move animation", function () {
         }
       }
     }
-    players[1].state.addStepListener(listener)
+    server.state.addStepListener(listener)
 
     // Setup the scene, place players 
     players[0].dispatch({
@@ -396,8 +394,8 @@ describe("Cancel a move animation", function () {
       });
     }, 40)
   }, 1000000)
-}); */
-/* 
+});
+
 describe("Han shot first", function () {
   let players: IClient[] = [];
   let server: IServer<any>

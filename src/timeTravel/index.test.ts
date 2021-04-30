@@ -187,7 +187,7 @@ test("Modify the past", function() {
       value: "Player2"
     }],
   })
-  timeTraveler.modifyPast(2, function(oldBranch, newTimeline) {
+  timeTraveler.forkPast(2, function(oldBranch, newTimeline) {
     expect(oldBranch.length).toBe(1)
     expect(newTimeline.length).toBe(2)
 
