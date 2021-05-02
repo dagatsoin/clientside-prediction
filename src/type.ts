@@ -13,8 +13,8 @@ export type State = {
 };
 
 export type ServerMessage =
- | { type: "rollback", data: { to: number, timeline: Timeline<Intent> } }
- | { type: "intent", data: ({ clientId: string, stepId: number } & Intent) }
+ | { type: "splice", data: { to: number, timeline: Timeline<Intent> } }
+ | { type: "intent", data: ({ clientId: string, stepId: number, timestamp: number } & Intent) }
  | { type: "reduce", data: { to: number } }
  | { type: "sync", data: { stepId: number, snapshot: SerializedWorld } }
 

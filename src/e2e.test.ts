@@ -10,11 +10,11 @@ function isGameReady(players: IClient[], nbPlayers: number) {
       const listener = () => {
         const isReady = player.state.players.length === nbPlayers 
         if (isReady) {
-          player.state.removeStepListener(listener)
+          player.removeServerCallback(listener)
           r(undefined)
         }
       }
-      player.state.addStepListener(listener)
+      player.addServerCallback(listener)
     })
   }))
 }
@@ -45,7 +45,7 @@ function getPing(players: IClient[]) {
     * 2 // Back and forth
     + 200 // arbitrary server computation time
 }
-/*
+
 describe("API", function() {
   let players: IClient[] = [];
   let server: IServer<any>
@@ -71,9 +71,9 @@ describe("API", function() {
 
   test.todo("intent")
   test.todo("reduce")
-  test.todo("rollback")
+  test.todo("splice")
 })
-*/
+
 describe("Create a room", function() {
   let players: IClient[] = [];
   let server: IServer<any>

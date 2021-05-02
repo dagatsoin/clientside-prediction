@@ -128,7 +128,7 @@ export function useNap({
           stepId: timeTravel.getCurrentStepId(),
           timer: setTimeout(
             function() {
-              timeTravel.startStep({}as any)
+              timeTravel.startStep({triggeredAtStepId: timeTravel.getCurrentStepId()} as any)
               model.present({
                 mutations: [
                   {

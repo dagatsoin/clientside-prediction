@@ -8,7 +8,7 @@ import { updatePlayersRepresentation, useNap } from './lib';
 import { IPlayer, IServerRepresentation } from './types';
 
 class Representation implements IServerRepresentation {
-  public timeTravel: ITimeTravel<Intent, SerializedWorld>;
+  public timeTravel: ITimeTravel<Intent & { triggeredAtStepId: number}, SerializedWorld>;
   public stepListeners: Array<(stepId: number) => void> = []
   public addStepListener(listener: (stepId: number) => void) {
     this.stepListeners.push(listener)

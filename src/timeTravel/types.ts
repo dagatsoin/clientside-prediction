@@ -12,9 +12,10 @@ export interface ITimeTravel<I, T> {
   /**
    * Start a step which can be still aborted.
    * This will prepare a new object with the triggered intent.
-   * Return the time elapsed since the start of the current step.
+   * The second parameter is filled only on the server.
+   * @returns the time elapsed since the start of the current step.
    */
-  startStep(intent: I): number;
+  startStep(intent: I, timestamp?: number): number;
   /**
    * Use this function to cancel a step.
    * It will clean the temporary new step
@@ -27,8 +28,10 @@ export interface ITimeTravel<I, T> {
    */
   commitStep(patch: ReadonlyArray<JSONCommand>): void
   /**
-   * Start a transaction to modify the past at the given stepId.
-   * Return the modified segment.
+   * Start a transaction to modify the past just after the given stepId.
+   * Beware, the given step id won't be included in the writtable segment.
+   * It is the root of the new fork.
+   * @returns the modified segment.
    */
   forkPast(
     /**

@@ -9,8 +9,8 @@ export interface IRepresentation {
   readonly player: IPlayer;
   readonly players: IPlayer[];
   readonly timeTravel: ITimeTravel<Intent, SerializedWorld>;
-  addStepListener(listener: (stepId: number) => void): void
-  removeStepListener(listener: (stepId: number) => void): void
+  addClientStepListener(listener: (stepId: number) => void): void
+  removeClientStepListener(listener: (stepId: number) => void): void
   getStartedAnimationPathAtStep: (stepId: number) => string[];
 }
 
@@ -19,7 +19,7 @@ export interface IServerRepresentation {
   readonly snapshot: SerializedWorld;
   readonly players: IPlayer[];
   readonly patch: ReadonlyArray<JSONCommand>;
-  readonly timeTravel: ITimeTravel<Intent, SerializedWorld>;
+  readonly timeTravel: ITimeTravel<Intent & { triggeredAtStepId: number }, SerializedWorld>;
   addStepListener(listener: (stepId: number) => void): void
   removeStepListener(listener: (stepId: number) => void): void
   getStartedAnimationPathAtStep: (stepId: number) => string[];

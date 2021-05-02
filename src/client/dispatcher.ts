@@ -20,7 +20,10 @@ export function createDispatcher(
 ): {
   onMessage(message: MessageEvent<string>): void;
   dispatch: Dispatcher;
+  addServerCallback(listener: (stepId: number) => void): void;
+  removeServerCallback(listener: (stepId: number) => void): void;
 } {
+  const serverListeners: Array<(stepId: number) => void> = []
   return {
     onMessage(messageEvent: MessageEvent<string>) {
       // Use native parser to keep the serialized map
@@ -61,14 +64,17 @@ export function createDispatcher(
        * The past changed. Sync the client to the server state
        * by doing a travel in the past and the apply of a new timeline.
        */
-      else if (message.type === "rollback") {
+      else if (message.type === "splice") {
         // Merge the server timeline in the local timeline.
-        timeTravel.forkPast(message.data.to, function (oldBranch, newBranch) {
-          newBranch.push(...message.data.timeline, ...oldBranch.slice(message.data.timeline.length))
+        // Not that splice index and forkPast index are different.
+        // Splice index indicates the first step you can modify.
+        // Fork's step indicates the step you will be on in the past.
+        timeTravel.forkPast(message.data.to - 1, function (oldBranch, newBranch) {
+          newBranch.push(...message.data.timeline/* , ...oldBranch.slice(message.data.timeline.length) */)
         })
-        // Rollback the model to the step before the rollback target.
-        // If the rollback targets step 2, rollback to 1.
-        model.present(actions.hydrate({snapshot: timeTravel.at(message.data.to), shouldRegisterStep: false }))
+        // Rollback the model to the step before the splice target.
+        // If the splice targets step 2, rollback to 1.
+        model.present(actions.hydrate({snapshot: timeTravel.at(message.data.to - 1), shouldRegisterStep: false }))
         // Replay the new section of the timeline by applying patch
         const patch = timeTravel.getPatchFromTo(message.data.to, timeTravel.getCurrentStepId())
         model.present(actions.applyPatch({commands: patch}))
@@ -81,6 +87,7 @@ export function createDispatcher(
       else if (message.type === "reduce") {
         timeTravel.reduce(message.data.to)
       }
+      serverListeners.forEach(listener => listener(getState().stepId))
     },
     dispatch(intent: Intent) {
       const { stepId: cStep, timeTravel } = getState();
@@ -95,6 +102,15 @@ export function createDispatcher(
       }})
       socket.send(data);
       model.present(actions[intent.type](intent.payload as any));
+    },
+    addServerCallback(listener: (stepId: number) => void): void {
+      serverListeners.push(listener)
+    },
+    removeServerCallback(listener: (stepId: number) => void): void {
+      const index = serverListeners.indexOf(listener)
+      if (index > -1) {
+        serverListeners.splice(index, 1)
+      }
     }
   };
 }

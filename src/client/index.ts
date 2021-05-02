@@ -18,6 +18,9 @@ class Client implements IClient {
   private _state: IRepresentation;
   private _dispatch: Dispatcher;
   private socket: WebSocket
+  
+  public addServerCallback: (listener: (stepId: number) => void) => void
+  public removeServerCallback: (listener: (stepId: number) => void) => void
 
   constructor(
     private readonly playerId: string,
@@ -27,13 +30,14 @@ class Client implements IClient {
     
     this.socket = new WebSocket(`ws://0.0.0.0:3000/?clientId=${playerId}`)
         
-    const { dispatch, onMessage } = createDispatcher(
+    const { dispatch, onMessage, addServerCallback, removeServerCallback } = createDispatcher(
       playerId,
       model,
       this.getState,
       this.socket
     );
-      
+    this.addServerCallback = addServerCallback
+    this.removeServerCallback = removeServerCallback
     this._state = createClientRepresentation(model, dispatch, () => this.onConnected(this));
 
     this.socket.onopen = () => {

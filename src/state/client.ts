@@ -35,19 +35,19 @@ class Representation implements IRepresentation {
     return this.timeTravel.getCurrentStepId();
   }
 
-  public stepListeners: Array<(stepId: number) => void> = []
-  public addStepListener(listener: (stepId: number) => void) {
+  private stepListeners: Array<(stepId: number) => void> = []
+  public addClientStepListener(listener: (stepId: number) => void) {
     this.stepListeners.push(listener)
   }
   
-  public getStartedAnimationPathAtStep: (stepId: number) => string[];
-
-  public removeStepListener(listener: (stepId: number) => void) {
+  public removeClientStepListener(listener: (stepId: number) => void) {
     const index = this.stepListeners.indexOf(listener)
     if (index > -1) {
       this.stepListeners.splice(index, 1)
     }
   }
+
+  public getStartedAnimationPathAtStep: (stepId: number) => string[];
 
   private isReady = false
 
