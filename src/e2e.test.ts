@@ -38,14 +38,6 @@ async function startInfra(clientNb: number) {
   return { server, players };
 }
 
-function getPing(players: IClient[]) {
-  return Math.max(
-    ...players.map(({state: {playerId}}) => getLatenceOf(playerId)!)
-    )// Max players latence
-    * 2 // Back and forth
-    + 200 // arbitrary server computation time
-}
-
 describe("API", function() {
   let players: IClient[] = [];
   let server: IServer<any>
@@ -72,7 +64,7 @@ describe("API", function() {
   test.todo("intent")
   test.todo("reduce")
   test.todo("splice")
-})
+}) 
 
 describe("Create a room", function() {
   let players: IClient[] = [];
@@ -104,7 +96,7 @@ describe("Create a room", function() {
   }, 1000000)
 })
 
-/* describe("Move animation", function () {
+describe("Move animation", function () {
   let players: IClient[] = [];
   let server: IServer<any>
 
@@ -138,13 +130,13 @@ describe("Create a room", function() {
               .position
               .animation.x
           ).toBeDefined();
-          players[0].state.removeStepListener(clientStartedAnimationListener)
+          players[0].state.removeClientStepListener(clientStartedAnimationListener)
         } catch(e) {
           done(e)
         }
       }
     }
-    players[0].state.addStepListener(clientStartedAnimationListener)
+    players[0].state.addClientStepListener(clientStartedAnimationListener)
     
      // Server received the start animation intent
     const serverStartedAnimationListener = function(stepId: number){
@@ -189,13 +181,13 @@ describe("Create a room", function() {
               .position
               .initial.x
           ).toBe(10)
-          players[0].state.removeStepListener(clientFinishedAnimationListener)
+          players[0].state.removeClientStepListener(clientFinishedAnimationListener)
         } catch(e) {
           done(e)
         }
       }
     }
-    players[0].state.addStepListener(clientFinishedAnimationListener)
+    players[0].state.addClientStepListener(clientFinishedAnimationListener)
 
     // Server has finished animation
     const serverFinishedAnimationListener = function(stepId: number) {
@@ -301,7 +293,7 @@ describe("Cancel a move animation", function () {
       })
     }, 20);
   }, 100000)
-}); */
+});
 
 
 /**

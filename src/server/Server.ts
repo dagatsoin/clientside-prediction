@@ -121,7 +121,6 @@ class Server implements IServer<World> {
           const timestampOfA = message.data.timestamp
           const timestampOfB = this.state.timeTravel.get(message.data.stepId + 1).timestamp
           if (timestampOfA < timestampOfB) {
-            console.log("SOONER")
             this.state.timeTravel.forkPast(message.data.stepId, (oldTimeline) => {
               // Insert the input action in the new timeline
               // TODO use the timestamp of the client to recreate the same balistic context
@@ -137,7 +136,6 @@ class Server implements IServer<World> {
           // We will return back to S (so after B action) for dispatching A intent and replay the rest of the timeline.
           // TODO cancel NAPed animation when splice timeline
           else {
-            console.log("LATER")
             // Maybe that sime client has alreay sent their intent for this step.
             // In this case, the server has already reorder the concurrent intents in further steps.
             // We will find in those steps where to insert the incoming intent.
@@ -152,13 +150,11 @@ class Server implements IServer<World> {
                 }
               })
 
-            const index = Math.min(
-              Math.max(
+            const index = Math.max(
                 concurrentIntents.findIndex(({timestamp}) => timestamp > message.data.timestamp),
-                0
-              ),
-              concurrentIntents.length - 1 // the incoming message is the last
-            ) + 1 + this.state.timeTravel.getInitialStep() // Rebase on step number
+                concurrentIntents.length // the incoming message is the last
+              )
+            + this.state.timeTravel.getInitialStep() // Rebase on step number
 
             this.state.timeTravel.forkPast(index, (oldTimeline) => {
 

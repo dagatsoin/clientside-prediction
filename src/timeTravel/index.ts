@@ -57,11 +57,8 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
       console.warn("Can't fork. The given step is in an immutable past.", fromStep)
       return []
     }
-    const oldBranchStartIndex = fromStep === this.initialState.stepId
-      ? 0 // Special case, the user will land to the initial snapshot.
-      : fromStep // The user will land at this step
-        + 1 // we want to modify the new futur of the user, so 1 step further
-        - this.initialState.stepId // offset due to the initial step id
+    // Convert from Timeline snapshot step id based index to array 0 based index
+    const oldBranchStartIndex = fromStep - this.initialState.stepId
 
     // The old branch starts at the next step after the given step in the past
     // until the end of the current timeline.
