@@ -38,7 +38,7 @@ async function startInfra(clientNb: number) {
   return { server, players };
 }
 
-describe("API", function() {
+/* describe("API", function() {
   let players: IClient[] = [];
   let server: IServer<any>
   
@@ -293,7 +293,7 @@ describe("Cancel a move animation", function () {
       })
     }, 20);
   }, 100000)
-});
+}); */
 
 
 /**
@@ -314,7 +314,7 @@ describe("Cancel a move animation", function () {
  * Greedo shot Han 100ms after receiving the step.
  * The server will simply compare who was the fatest to respond to the new step.
  */
-/* 
+ 
 describe("Han moved first", function () {
   let players: IClient[] = [];
   let server: IServer<any>
@@ -341,9 +341,10 @@ describe("Han moved first", function () {
 
   test("Check process", function(done) {
     const listener = function(stepId: number) {
-      console.log(stepId, server.state)
       // timeline should be: add, add, moveup, translate, stoptranslate, shot
-      if (stepId === 8) {
+      console.log("PLAYER0", stepId, (players[0] as any)._state.timeTravel.timeline.map(({intent, timestamp}: any)=>({intent: intent.type, timestamp, playerId: intent.payload?.playerId})))
+      console.log("PLAYER1", stepId, (players[0] as any)._state.timeTravel.timeline.map(({intent, timestamp}: any)=>({intent: intent.type, timestamp, playerId: intent.payload?.playerId})))
+      if (stepId === 5) {
         try {
           expect(players[0].state.stepId).toBe(6)
           expect(players[1].state.stepId).toBe(6)
@@ -353,11 +354,11 @@ describe("Han moved first", function () {
         } catch(e) {
           done(e)
         } finally {
-          players[1].state.removeStepListener(listener)
+          players[1].removeServerCallback(listener)
         }
       }
     }
-    server.state.addStepListener(listener)
+    players[1].addServerCallback(listener)
 
     // Setup the scene, place players 
     players[0].dispatch({
@@ -387,11 +388,10 @@ describe("Han moved first", function () {
     }, 40)
   }, 1000000)
 });
-
+/* 
 describe("Han shot first", function () {
   let players: IClient[] = [];
   let server: IServer<any>
-  let ping: number = 0
 
   beforeAll(async () => {
     const infra = (await startInfra(2));
@@ -399,7 +399,6 @@ describe("Han shot first", function () {
     setLatence("Player1", 30)
     server = infra.server
     players = infra.players
-    ping = getPing(players)
   });
 
   afterAll(function() {
@@ -410,6 +409,19 @@ describe("Han shot first", function () {
     expect(players[1].state.player.position.x).toBe(0)
   })
   test("Check process", function(done) {
+    const listener = function(stepId: number) {
+      if (stepId === 8) {
+        try {
+          expect(players[0].state.stepId).toBe(6)
+          expect(players[1].state.stepId).toBe(6)
+          expect(players[0].state.player.isAlive).toBeFalsy()
+          expect(players[1].state.player.ammo).toBe(0)
+          done()
+        } catch(e) {
+          done(e)
+        }
+      }
+    }
     // Setup the scene, place players 
     players[0].dispatch({
       type: "moveUp",
@@ -437,13 +449,5 @@ describe("Han shot first", function () {
         }
       });
     }, 40)
-      
-    setTimeout(function() {
-      expect(players[0].state.stepId).toBe(6)
-      expect(players[1].state.stepId).toBe(6)
-      expect(players[0].state.player.isAlive).toBeFalsy()
-      expect(players[1].state.player.ammo).toBe(0)
-      done()
-    }, ping + 140)
   })
 }); */

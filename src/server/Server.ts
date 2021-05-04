@@ -105,23 +105,22 @@ class Server implements IServer<World> {
        */
       if (message.data.stepId < this.state.stepId) {
         if (isAllowedAction(message.data.type, message.data.stepId)) {
-          // We need to modify the past
-          // Roll back the model to the input step id
-          this.dispatch({
-            type: "hydrate",
-            triggeredAtStepId: message.data.stepId,
-            payload: {
-              snapshot: this.state.timeTravel.at(message.data.stepId),
-              shouldRegisterStep: false
-            }
-          }, input.timestamp)
-          // Case 1: The incoming message from client A at step S was triggered SOONER than client B.
-          // We will return back to S-1 (so before B action) for dispatching A intent and replay the rest of the timeline.
-          // TODO cancel NAPed animation when splice timeline
           const timestampOfA = message.data.timestamp
           const timestampOfB = this.state.timeTravel.get(message.data.stepId + 1).timestamp
           if (timestampOfA < timestampOfB) {
+
+            // Roll back the model to the fork point
+            this.dispatch({
+              type: "hydrate",
+              triggeredAtStepId: message.data.stepId,
+              payload: {
+                snapshot: this.state.timeTravel.at(message.data.stepId),
+                shouldRegisterStep: false
+              }
+            }, input.timestamp)
+
             this.state.timeTravel.forkPast(message.data.stepId, (oldTimeline) => {
+
               // Insert the input action in the new timeline
               // TODO use the timestamp of the client to recreate the same balistic context
               this.dispatch({type: input.type, payload: input.payload, triggeredAtStepId: message.data.stepId} as Intent, input.timestamp)
@@ -155,6 +154,21 @@ class Server implements IServer<World> {
                 concurrentIntents.length // the incoming message is the last
               )
             + this.state.timeTravel.getInitialStep() // Rebase on step number
+
+            // Roll back the model to the fork point
+            this.dispatch({
+              type: "hydrate",
+              triggeredAtStepId: message.data.stepId,
+              payload: {
+                snapshot: this.state.timeTravel.at(index),
+                shouldRegisterStep: false
+              }
+            }, input.timestamp)
+
+            // Case 1: The incoming message from client A at step S was triggered SOONER than client B.
+            // We will return back to S-1 (so before B action) for dispatching A intent and replay the rest of the timeline.
+            // TODO cancel NAPed animation when splice timeline
+            
 
             this.state.timeTravel.forkPast(index, (oldTimeline) => {
 
