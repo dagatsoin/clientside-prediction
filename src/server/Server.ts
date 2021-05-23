@@ -2,7 +2,7 @@ import express from 'express';
 import { URL } from 'url'
 import http from 'http';
 import WebSocket from 'ws';
-import { actions, Intent as _Intent } from '../actions';
+import { actions, Intent } from '../actions';
 import { parse, stringify } from '../business/lib/JSON';
 import { createModel } from "../business/model";
 import {
@@ -14,19 +14,20 @@ import { createServerRepresentation } from "../state/server";
 import { IServerRepresentation } from "../state/types";
 import { ClientMessage, ServerMessage } from '../type';
 import { getClients, addClient, forAllClients, getLatenceOf, deleteClient } from './clientList';
+import { Dispatcher } from '../client/types';
 
 export interface IServer<T> {
+  dispatch: Dispatcher
   state: IServerRepresentation
-  close(): void
+  close(cb?: ()=>void): void
 }
-
-type Intent = _Intent & {triggeredAtStepId: number}
 
 class Server implements IServer<World> {
   private wss: WebSocket.Server
   private server: http.Server
+  private model: IModel<World, SerializedWorld> = createModel("server")
   constructor(
-    private model: IModel<World, SerializedWorld> = createModel("server"),
+    onCreate?: () => void
   ) {
     const app = express();
     this.server = http.createServer(app);
@@ -62,17 +63,18 @@ class Server implements IServer<World> {
     //start our server
     this.server.listen(process.env.PORT || 3000, () => {
         console.log(`Server started on port ${JSON.stringify(this.server.address())}`);
+        onCreate?.()
     });
 
     
-    this.state = createServerRepresentation(this.model);
+    this.state = createServerRepresentation(this.model, this.dispatch);
   }
   
   state: IServerRepresentation;
 
-  close() {
+  close(cb?: ()=>void) {
     this.wss.close()
-    this.server.close()
+    this.server.close(cb)
     forAllClients(function(client) {
       deleteClient(client)
     })
@@ -103,31 +105,34 @@ class Server implements IServer<World> {
        * The incoming intent is for a previous step.
        * The server need to modify the past.
        */
+
       if (message.data.stepId < this.state.stepId) {
         if (isAllowedAction(message.data.type, message.data.stepId)) {
           const timestampOfA = message.data.timestamp
           const timestampOfB = this.state.timeTravel.get(message.data.stepId + 1).timestamp
+          // Case 1: The incoming message from client A at step S was triggered SOONER than client B.
+          // We will return back to S-1 (so before B action) for dispatching A intent and replay the rest of the timeline.
+          // TODO cancel NAPed animation when splice timeline
           if (timestampOfA < timestampOfB) {
 
             // Roll back the model to the fork point
             this.dispatch({
               type: "hydrate",
-              triggeredAtStepId: message.data.stepId,
               payload: {
                 snapshot: this.state.timeTravel.at(message.data.stepId),
                 shouldRegisterStep: false
               }
-            }, input.timestamp)
+            })
 
             this.state.timeTravel.forkPast(message.data.stepId, (oldTimeline) => {
 
               // Insert the input action in the new timeline
               // TODO use the timestamp of the client to recreate the same balistic context
-              this.dispatch({type: input.type, payload: input.payload, triggeredAtStepId: message.data.stepId} as Intent, input.timestamp)
+              this.dispatchAt({type: input.type, payload: input.payload} as Intent, message.data.stepId, input.timestamp)
               
               // Then replay all the old timeline actions
               for (let i = 0; i < oldTimeline.length; i++) {
-                this.dispatch(oldTimeline[i].intent, oldTimeline[i].timestamp)
+                this.dispatchAt(oldTimeline[i].intent, this.state.timeTravel.getCurrentStepId(), oldTimeline[i].timestamp)
               }
             })
           }
@@ -135,7 +140,7 @@ class Server implements IServer<World> {
           // We will return back to S (so after B action) for dispatching A intent and replay the rest of the timeline.
           // TODO cancel NAPed animation when splice timeline
           else {
-            // Maybe that sime client has alreay sent their intent for this step.
+            // Maybe that some clients have already sent their intent for this step.
             // In this case, the server has already reorder the concurrent intents in further steps.
             // We will find in those steps where to insert the incoming intent.
 
@@ -158,31 +163,26 @@ class Server implements IServer<World> {
             // Roll back the model to the fork point
             this.dispatch({
               type: "hydrate",
-              triggeredAtStepId: message.data.stepId,
               payload: {
                 snapshot: this.state.timeTravel.at(index),
                 shouldRegisterStep: false
               }
-            }, input.timestamp)
-
-            // Case 1: The incoming message from client A at step S was triggered SOONER than client B.
-            // We will return back to S-1 (so before B action) for dispatching A intent and replay the rest of the timeline.
-            // TODO cancel NAPed animation when splice timeline
-            
+            })
 
             this.state.timeTravel.forkPast(index, (oldTimeline) => {
 
               // Trigger the new intent
-              this.dispatch({type: input.type, payload: input.payload, triggeredAtStepId: message.data.stepId} as Intent, input.timestamp);
+              this.dispatchAt({type: input.type, payload: input.payload} as Intent, message.data.stepId, input.timestamp);
 
               // Then replay all the old timeline actions
               // This will assign each old intent, if accepted, to another step.
+              
               for (let i = 0; i < oldTimeline.length; i++) {
-                this.dispatch(oldTimeline[i].intent, oldTimeline[i].timestamp)
+                this.dispatchAt(oldTimeline[i].intent, this.state.timeTravel.getCurrentStepId(), oldTimeline[i].timestamp)
               }
             })
           }
-          console.info("Server modified past", parse(stringify((this.state.timeTravel.slice(input.stepId + 1) as any[]).map(({intent, timestamp})=>({intent: intent.type, timestamp, playerId: intent.payload.playerId})))))
+          console.info("Server modified past", parse(stringify(this.state.timeTravel.getTimeline().map(({intent, timestamp})=>({intent: intent.type, timestamp, playerId: (intent.payload as any).playerId})))))
           // The server has now a new "present"
           // We need to replay the new timeline on the clients.
           forAllClients((client) => {
@@ -203,9 +203,9 @@ class Server implements IServer<World> {
        */
       else {
         // Trigger the client action
-        this.dispatch({type: input.type, payload: input.payload, triggeredAtStepId: message.data.stepId} as Intent, input.timestamp)
+        this.dispatchAt({type: input.type, payload: input.payload} as Intent, message.data.stepId, input.timestamp)
         if (this.model.patch.length) {
-          console.info(`New server step ${this.state.timeTravel.getCurrentStepId()}`, this.state.timeTravel.slice(this.state.timeTravel.getCurrentStepId()))
+          console.info(`New server step ${this.state.timeTravel.getCurrentStepId()}`, this.state.timeTravel.slice(this.state.timeTravel.getInitialStep(), this.state.timeTravel.getCurrentStepId()))
           forAllClients((client, id) => {   
             if (id !== input.clientId) {
               client.send(stringify({
@@ -231,14 +231,21 @@ class Server implements IServer<World> {
     }
   }
 
-  private dispatch = (intent: Intent, timestamp?: number) => {
-    this.state.timeTravel.startStep({...intent}, timestamp)
+  private dispatchAt = (intent: Intent, duringStepId: number, timestamp: number) => {
+    this.state.timeTravel.startStep({...intent, triggeredAtStepId: duringStepId}, timestamp)
     this.model.present(actions[intent.type](intent.payload as any));
   };
+
+  public dispatch = (intent: Intent) => {
+    const { timeTravel } = this.state;
+    // Backup intent to write the next step
+    timeTravel.startStep({...intent, triggeredAtStepId: this.state.timeTravel.getCurrentStepId()})
+    this.model.present(actions[intent.type](intent.payload as any));
+  }
 }
 
-export function createServer() {
-  return new Server();
+export function createServer(cb?: () => void) {
+  return new Server(cb);
 }
 function isAllowedAction(type: Intent["type"], stepId: number) {
   return true

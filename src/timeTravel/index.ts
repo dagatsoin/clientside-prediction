@@ -24,8 +24,14 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
   getTimeline() {
     return [...this.timeline]
   }
-  startStep(intent: I, timestamp: number = this.getLocalDeltaTime()): number {
-    this.pendingTransaction = {intent, timestamp }
+  startStep(
+    intent: Readonly<I>,
+    timestamp: number = this.getLocalDeltaTime()
+  ): number {
+    this.pendingTransaction = {
+      intent,
+      timestamp
+    }
     return timestamp
   }
   abortStep(): void {

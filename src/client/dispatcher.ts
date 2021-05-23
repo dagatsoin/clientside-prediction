@@ -28,7 +28,8 @@ export function createDispatcher(
     onMessage(messageEvent: MessageEvent<string>) {
       // Use native parser to keep the serialized map
       const message: ServerMessage = JSON.parse(messageEvent.data)
-      const { timeTravel } = getState();
+      const { stepId, timeTravel } = getState();
+      const currentStepId = stepId
       /**
        * The server sent a sync command.
        * We reduce the timeline to the server stepId.

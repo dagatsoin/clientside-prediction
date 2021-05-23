@@ -100,7 +100,7 @@ const translateRight = ({
       type: BasicMutationType.jsonCommand,
       payload: {
         op: JSONOperation.replace,
-        path: `entities/${playerId}/transform/position/animation/x`,
+        path: `/entities/${playerId}/transform/position/animation/x`,
         value: {
           startedAt: Date.now(),
           bezier: [0, 0, 1, 1],

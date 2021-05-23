@@ -4,9 +4,13 @@ import { createServer } from './Server'
 describe("Assigning intent to step", function() {
   let server: ReturnType<typeof createServer>
 
-  beforeEach(function() {
+  beforeEach(function(done) {
     server?.close()
-    server = createServer()
+    server = createServer(done)
+  })
+
+  afterAll(function(done) {
+    server?.close(done)
   })
 
   test("Incoming messages are later.", function() {

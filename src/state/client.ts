@@ -65,7 +65,8 @@ class Representation implements IRepresentation {
     this.getStartedAnimationPathAtStep = useNap({
       model: this.model,
       stepListeners: this.stepListeners,
-      timeTravel: this.timeTravel
+      timeTravel: this.timeTravel,
+      dispatch
     })
 
     autorun(() => {

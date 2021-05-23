@@ -38,7 +38,7 @@ async function startInfra(clientNb: number) {
   return { server, players };
 }
 
-/* describe("API", function() {
+/*  describe("API", function() {
   let players: IClient[] = [];
   let server: IServer<any>
   
@@ -230,7 +230,7 @@ describe("Move animation", function () {
   })
 });
 
-describe("Cancel a move animation", function () {
+describe("Imperatively cancel a move animation", function () {
   let players: IClient[] = [];
   let server: IServer<any>
 
@@ -293,8 +293,75 @@ describe("Cancel a move animation", function () {
       })
     }, 20);
   }, 100000)
-}); */
+});
+*/
+describe("Automatically cancel a move animation for a dead player", function () {
+  let players: IClient[] = [];
+  let server: IServer<any>
 
+  beforeAll(async () => {
+    const nbPlayers = 1
+    const infra = (await startInfra(nbPlayers));
+    server = infra.server
+    players = infra.players
+    return isGameReady(players, nbPlayers)
+  });
+
+  afterAll(function() {
+    server.close()
+  })
+  
+  test("Initial state", function () {
+    expect(players[0].state.player.position.x).toBe(0)
+  });
+  test("Check process", function (done) {
+    
+     // Server received the start animation intent
+     const serverCanceledAnimationListener = function(stepId: number){
+      if (stepId === 4) {
+        try {
+          expect(
+            server
+            .state
+            .timeTravel.at(4)
+            .entities.value[0][1]
+            .transform
+            .position
+            .animation.x
+          ).toBeUndefined();
+          server.state.removeStepListener(serverCanceledAnimationListener)
+          expect(players[0].state.player.position.x).toBe(0)
+          done()
+        } catch(e) {
+          done(e)
+        }
+      }
+    }
+    server.state.addStepListener(serverCanceledAnimationListener)
+
+    players[0].dispatch({
+      type: "translateRight",
+      payload: {
+        playerId: players[0].state.playerId,
+        delta: 10,
+        duration: 5000
+      }
+    });
+    // Kill the player
+    setTimeout(function() {
+      players[0].dispatch({
+        type: "applyPatch",
+        payload: {
+          commands: [{
+            path: `/entities/${players[0].state.playerId}/isAlive`,
+            op: JSONOperation.replace,
+            value: false
+          }]
+        }
+      })
+    }, 20);
+  }, 100000)
+});
 
 /**
  * This test a basic problem of lag compensation when mixing
@@ -314,8 +381,10 @@ describe("Cancel a move animation", function () {
  * Greedo shot Han 100ms after receiving the step.
  * The server will simply compare who was the fatest to respond to the new step.
  */
- 
+/* 
+
 describe("Han moved first", function () {
+  test.todo("FIX ME. When debuging and pausing before the translateright action, the shot action is enserted at step 2 then replaced by a third addPlayer.")
   let players: IClient[] = [];
   let server: IServer<any>
   
@@ -344,7 +413,7 @@ describe("Han moved first", function () {
       // timeline should be: add, add, moveup, translate, stoptranslate, shot
       console.log("PLAYER0", stepId, (players[0] as any)._state.timeTravel.timeline.map(({intent, timestamp}: any)=>({intent: intent.type, timestamp, playerId: intent.payload?.playerId})))
       console.log("PLAYER1", stepId, (players[0] as any)._state.timeTravel.timeline.map(({intent, timestamp}: any)=>({intent: intent.type, timestamp, playerId: intent.payload?.playerId})))
-      if (stepId === 5) {
+      if (stepId === 6) {
         try {
           expect(players[0].state.stepId).toBe(6)
           expect(players[1].state.stepId).toBe(6)
@@ -388,7 +457,7 @@ describe("Han moved first", function () {
     }, 40)
   }, 1000000)
 });
-/* 
+ 
 describe("Han shot first", function () {
   let players: IClient[] = [];
   let server: IServer<any>

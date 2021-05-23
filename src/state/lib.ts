@@ -12,6 +12,7 @@ import {
   Replace
 } from "../business/lib/types";
 import { Animation, IEntity, IModel, Position, SerializedWorld, World } from "../business/types";
+import { Dispatcher } from '../client/types';
 import { ITimeTravel } from '../timeTravel/types';
 import { IPlayer } from './types';
 
@@ -39,6 +40,12 @@ export function didRemoveAnimation(
       command.path
     )
   );
+}
+
+export function isDead(
+  command: JSONCommand
+): boolean {
+  return command.op === JSONOperation.replace && command.path.endsWith("isAlive")
 }
 
 
@@ -88,11 +95,12 @@ export function updatePlayersRepresentation(
 }
 
 export function useNap({
-  model, timeTravel, stepListeners
+  model, timeTravel, stepListeners, dispatch
 }: {
   model: IModel<World, SerializedWorld>,
   timeTravel: ITimeTravel<Intent, SerializedWorld>,
   stepListeners: Array<(stepId: number) => void>,
+  dispatch: Dispatcher
 }): (stepId: number) => string[] {
   /**
    * A list of running animations property paths maintened by
@@ -128,7 +136,7 @@ export function useNap({
           stepId: timeTravel.getCurrentStepId(),
           timer: setTimeout(
             function() {
-              timeTravel.startStep({triggeredAtStepId: timeTravel.getCurrentStepId()} as any)
+              timeTravel.startStep({type: "removeAnimation"} as any)
               model.present({
                 mutations: [
                   {
@@ -168,8 +176,29 @@ export function useNap({
       animations.delete(mutation.path)
     })
   });
+
+  // Player was killed, stop animations
+  autorun(() => {
+    model.patch.filter(isDead)
+      .forEach(function(command) {
+        const playerId = getEntityIdFromCommandPath(command.path)
+        const playerAnimationPaths: any[] = []
+        for (let animatedPath of animations.keys()) {
+          const animatedEntityId = getEntityIdFromCommandPath(command.path)
+          if (animatedEntityId === playerId) {
+            playerAnimationPaths.push(animatedPath)
+          }
+        }
+        dispatch({type: "cancelAnimations", payload: {paths: playerAnimationPaths}})
+      })
+    
+  })
   
   return function getPathsFromStep(id: number): string[] {
     return Array.from(animations).filter(([_, {stepId}]) => stepId === id).map(([path]) => path)
   }
+}
+
+export function getEntityIdFromCommandPath(path: string) {
+  return path.split('/')[2]
 }
