@@ -137,7 +137,7 @@ export function useNap({
           timer: setTimeout(
             function() {
               dispatch({
-                type: "stopAnimations",
+                type: "endAnimations",
                 payload: {
                   paths: [mutation.path]
                 }

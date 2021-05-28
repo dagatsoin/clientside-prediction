@@ -1,9 +1,7 @@
-import { text } from "express";
-import { translateRight } from "../actions";
+import { endAnimations, translateRight } from "../actions";
 import { MutationType } from "./acceptors";
-import { getAnimationProgress } from "./animation";
 import { createModel } from "./model";
-import { Animation, IModel, SerializedWorld, World } from "./types";
+import { IModel, SerializedWorld, World } from "./types";
 import { configure } from "mobx"
 
 configure({
@@ -74,6 +72,22 @@ describe("Mutations", function() {
       expect(model.data.entities.get("fraktar")?.transform.position.initial.x).toBeLessThanOrEqual(9)
       done()
     }, 50)
+  })
+
+  test("endAnimation", function() {
+    // Start an animation
+    model.present(translateRight({
+      playerId: "fraktar",
+      delta: 10,
+      duration: 100,
+    }))
+    // Stop it at 50%
+    model.present(endAnimations({
+      paths: [`/entities/fraktar/transform/position/animation/x`]
+    }))
+
+    expect(model.data.entities.get("fraktar")?.transform.position.animation.x).toBeUndefined()
+    expect(model.data.entities.get("fraktar")?.transform.position.initial.x).toBe(10)
   })
 })
 

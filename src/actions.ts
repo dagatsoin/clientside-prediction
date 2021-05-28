@@ -112,7 +112,7 @@ export const translateRight = ({
   ]
 });
 
-const endAnimations = ({paths}: {paths: string[]}): Proposal => ({
+export const endAnimations = ({paths}: {paths: string[]}): Proposal => ({
   mutations: paths.map(path => ({
     type: MutationType.stopAnimation,
     payload: {
@@ -215,6 +215,10 @@ export type Intent =
     }
   | {
       type: "stopAnimations";
+      payload: Readonly<{ paths: ReadonlyArray<string> }>
+    }
+  | {
+      type: "endAnimations";
       payload: Readonly<{ paths: ReadonlyArray<string> }>
     }
   | {

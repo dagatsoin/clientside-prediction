@@ -230,14 +230,16 @@ export class Model implements IModel<World, SerializedWorld> {
               path: mutation.payload.path.replace("animation", "initial"),
               value: position
             }
-            const removeOp: Remove = {
-              op: JSONOperation.remove,
-              path: mutation.payload.path
-            }
             applyJSONCommand(this.data, replaceOp);
-            applyJSONCommand(this.data, removeOp);
-            this._patch.push(replaceOp, removeOp)
+            this._patch.push(replaceOp)
           }
+          const removeOp: Remove = {
+            op: JSONOperation.remove,
+            path: mutation.payload.path
+          }
+          applyJSONCommand(this.data, removeOp);
+          this._patch.push(removeOp)
+
           break;
 
         case BasicMutationType.jsonCommand:
