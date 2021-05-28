@@ -1,30 +1,41 @@
+import { text } from "express";
+import { translateRight } from "../actions";
+import { MutationType } from "./acceptors";
 import { getAnimationProgress } from "./animation";
 import { createModel } from "./model";
-import { Animation } from "./types";
+import { Animation, IModel, SerializedWorld, World } from "./types";
+import { configure } from "mobx"
 
-const model = createModel("server", {
-  entities: {
-    dataType: "Map",
-    value: [[
-      "fraktar",
-      {
-        name: "Fraktar",
-        id: "fraktar",
-        isAlive: true,
-        ammo: 1,
-        transform: {
-          position: {
-            animation: {},
-            initial: {
-              x: 0,
-              y: 0
+configure({
+    useProxies: "never"
+})
+let model!: IModel<World, SerializedWorld>
+
+beforeEach(function() {  
+  model = createModel("server", {
+    entities: {
+      dataType: "Map",
+      value: [[
+        "fraktar",
+        {
+          name: "Fraktar",
+          id: "fraktar",
+          isAlive: true,
+          ammo: 1,
+          transform: {
+            position: {
+              animation: {},
+              initial: {
+                x: 0,
+                y: 0
+              }
             }
           }
         }
-      }
-    ]]
-  }
-});
+      ]]
+    }
+  });
+})
 
 describe("World", function () {
   it("should be hydrated", function () {
@@ -33,8 +44,37 @@ describe("World", function () {
 });
 
 describe("Entity", function () {
-  const Fraktar = model.data.entities.get("fraktar");
   it("should be at position 0", function () {
+    const Fraktar = model.data.entities.get("fraktar");
     expect(Fraktar?.transform.position.initial.x).toBe(0);
   });
 });
+
+describe("Mutations", function() {
+  test("stopAnimation", function(done) {
+    // Start an animation
+    model.present(translateRight({
+      playerId: "fraktar",
+      delta: 10,
+      duration: 100,
+    }))
+    // Stop it at 50%
+    setTimeout(function() {
+      model.present({
+        mutations: [{
+          type: MutationType.stopAnimation,
+          payload: {
+            isFinished: false,
+            path: `/entities/fraktar/transform/position/animation/x`
+          }
+        }]
+      })
+      expect(model.data.entities.get("fraktar")?.transform.position.animation.x).toBeUndefined()
+      expect(model.data.entities.get("fraktar")?.transform.position.initial.x).toBeGreaterThanOrEqual(5)
+      expect(model.data.entities.get("fraktar")?.transform.position.initial.x).toBeLessThanOrEqual(9)
+      done()
+    }, 50)
+  })
+})
+
+test.todo("snapshot computation")

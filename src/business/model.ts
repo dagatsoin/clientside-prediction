@@ -23,7 +23,7 @@ import {
   Remove,
   Replace
 } from "./lib/types";
-import { applyJSONCommand, getParentAndChild, increment } from "./lib/acceptors";
+import { applyJSONCommand, at, getParentAndChildKey, increment } from "./lib/acceptors";
 import { MutationType } from './acceptors';
 import { getAnimationProgress, getCurrentPosition } from './animation';
 import { didRemoveAnimation } from "../state/lib";
@@ -82,6 +82,7 @@ export class Model implements IModel<World, SerializedWorld> {
     snapshot: SerializedWorld = { entities: {dataType: "Map", value: []} }
   ) {
     this.hydrate(snapshot);
+    this._snapshot = snapshot
     makeObservable<Model, "_patch">(this, {
       data: observable,
       patch: computed,
@@ -93,8 +94,27 @@ export class Model implements IModel<World, SerializedWorld> {
   public get patch(): ReadonlyArray<JSONCommand> {
     return this._patch.slice();
   }
+
+  /**
+   * The model did change
+   */ 
+  private isMutating: boolean = false;
+  private isStale: boolean = false;
+  private get hasStaleSnapshot() {
+    return this._patch.length && !this.isMutating && this.isStale
+  }
+
+  private computeSnapshot() {
+    this._snapshot = { entities: {dataType: "Map", value: Array.from(this.data.entities.entries()) }};
+    this.isStale = false;
+  }
+
+  private _snapshot: SerializedWorld
   public get snapshot(): SerializedWorld {
-    return { entities: {dataType: "Map", value: Array.from(this.data.entities.entries()) }};
+    if (this.hasStaleSnapshot) {
+      this.computeSnapshot()
+    }
+    return this._snapshot
   }
 
   private _patch: JSONCommand[] = [];
@@ -126,6 +146,7 @@ export class Model implements IModel<World, SerializedWorld> {
 
   public present = ({ mutations, shouldReact = true }: Proposal) => {
     this._patch = [];
+    this.isMutating = true;
     for (let mutation of mutations) {
       switch (mutation.type) {
         case BasicMutationType.incBy:
@@ -243,6 +264,8 @@ export class Model implements IModel<World, SerializedWorld> {
       }
      // this.runInternalReactions()
     }
+    this.isMutating = false;
+    this.isStale = true;
   };
 
   /* // This index is used when reviewing each mutation during reaction.
@@ -261,10 +284,6 @@ export class Model implements IModel<World, SerializedWorld> {
       }
     }
   } */
-}
-
-function at(model: World, path: string): any {
-   return getParentAndChild(model, path)[1]
 }
 
 export function createModel(

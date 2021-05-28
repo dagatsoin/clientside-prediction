@@ -86,7 +86,7 @@ const moveLeft = ({ playerId }: { playerId: string }): Proposal => ({
   ]
 });
 
-const translateRight = ({
+export const translateRight = ({
   playerId,
   delta,
   duration = 200

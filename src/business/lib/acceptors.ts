@@ -1,8 +1,8 @@
-import { isObservableArray, isObservableMap } from "mobx";
+import { isObservableArray, isObservableMap, ObservableMap } from "mobx";
 import { JSONCommand, JSONOperation } from "./types";
 import { isSerializedMap, SerializedMap } from "./JSON"
 
-export function getParentAndChild(
+export function getParentAndChildKey(
   root: Object | Array<any> | Map<any, any>,
   path: string
 ): [
@@ -40,12 +40,30 @@ export function getParentAndChild(
   }
 }
 
+/**
+ * Return the value of an object at the given path.
+ */
+export function at<T = any >(model: Object | any[] | ObservableMap<any, any>, path: string): T {
+  const [parent, childKey] = getParentAndChildKey(model, path)
+
+  if (parent instanceof Map || isObservableMap(parent)) {
+   return parent.get(childKey)
+ }
+
+ if (isSerializedMap(parent)) {
+   return parent.value.find(([id]) => id === childKey)![1]
+ } 
+
+ return parent[childKey as keyof typeof parent] as any;
+ 
+}
+
 export function increment<T extends Object | Array<any>>(
   data: T,
   path: string,
   value: number
 ): number {
-  const [parent, childKey] = getParentAndChild(data, path);
+  const [parent, childKey] = getParentAndChildKey(data, path);
   (parent as any)[childKey] += value;
   return (parent as any)[childKey];
 }
@@ -54,7 +72,7 @@ export function applyJSONCommand(
   data: {} | Array<any> | Map<any, any>,
   command: JSONCommand
 ) {
-  const [parent, childKey] = getParentAndChild(data, command.path);
+  const [parent, childKey] = getParentAndChildKey(data, command.path);
   switch (command.op) {
     case JSONOperation.add:
     case JSONOperation.replace:
