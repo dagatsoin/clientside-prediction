@@ -6,26 +6,53 @@ export function getBezier(animation?: Animation) {
     return cubicBezier(...animation.bezier);
   }
 }
+
 export function getAnimationProgress(
+  initial: number,
+  animation: Animation,
+  now: number
+): {
+  current: number
+  delta: number,
+  percent: number,
+} {
+  const timePercent = 100 * Math.min(
+    Math.max(now - animation.startedAt, 0),
+    animation.duration
+  ) / (animation.duration)
+
+  const delta = cubicBezier(...animation.bezier)(timePercent/100) // Get the progression on the bezier curve
+     * (animation.to !== undefined  // Two cases : 
+      ? animation.to - initial      // - eitheir animation is set with a target value
+      : animation.delta!)           // - or a delta value
+
+  return {
+    current: initial + delta,
+    percent: timePercent,
+    delta
+  }
+}
+
+function getPositionAnimationProgress(
+  positionAnimation: Partial<{ x: Animation; y: Animation }>,
   now: number,
-  animation: Partial<{ x: Animation; y: Animation }>
 ) {
   return {
     x:
       Math.min(
-        Math.max(now - (animation?.x?.startedAt ?? 0), 0),
-        animation?.x?.duration ?? 0
-      ) / (animation?.x?.duration ?? 0),
+        Math.max(now - (positionAnimation?.x?.startedAt ?? 0), 0),
+        positionAnimation?.x?.duration ?? 0
+      ) / (positionAnimation?.x?.duration ?? 0),
     y:
       Math.min(
-        Math.max(now - (animation?.y?.startedAt ?? 0), 0),
-        animation?.y?.duration ?? 0
-      ) / (animation?.y?.duration ?? 0)
+        Math.max(now - (positionAnimation?.y?.startedAt ?? 0), 0),
+        positionAnimation?.y?.duration ?? 0
+      ) / (positionAnimation?.y?.duration ?? 0)
   };
 }
-export function getDeltaPosition(
-  animation: Partial<{ x: Animation; y: Animation }>,
-  initial: Position
+function getDeltaPosition(
+  initial: Position,
+  animation: Partial<{ x: Animation; y: Animation }>
 ) {
   return {
     x:
@@ -39,8 +66,8 @@ export function getDeltaPosition(
   };
 }
 
-export function getCurrentPosition(now: number, initial: Position, animation: Partial<{ x: Animation; y: Animation; }>) {
-  const progress = getAnimationProgress(now, animation);
+export function getCurrentPosition(initial: Position, animation: Partial<{ x: Animation; y: Animation; }>, now: number) {
+  const progress = getPositionAnimationProgress(animation, now);
   const transforms = {
     posX: getBezier(animation?.x),
     posY: getBezier(animation?.y)
@@ -48,9 +75,9 @@ export function getCurrentPosition(now: number, initial: Position, animation: Pa
   return {
     x: initial.x +
       (transforms.posX?.(progress.x) ?? 0) *
-      getDeltaPosition(animation, initial).x,
+      getDeltaPosition(initial, animation).x,
     y: initial.y +
       (transforms.posX?.(progress.y) ?? 0) *
-      getDeltaPosition(animation, initial).y
+      getDeltaPosition(initial, animation).y
   };
 }

@@ -65,7 +65,7 @@ class Player implements IPlayer {
   get position() {
     const now = Date.now();
     const { animation, initial } = this.entity.transform.position;
-    return getCurrentPosition(now, initial, animation);
+    return getCurrentPosition(initial, animation, now);
   }
 
   constructor(private entity: IEntity) {
@@ -136,33 +136,11 @@ export function useNap({
           stepId: timeTravel.getCurrentStepId(),
           timer: setTimeout(
             function() {
-              timeTravel.startStep({type: "removeAnimation"} as any)
-              model.present({
-                mutations: [
-                  {
-                    type: BasicMutationType.jsonCommand,
-                    payload: {
-                      op: JSONOperation.remove,
-                      path: mutation.path
-                    }
-                  },
-                  mutation.value.to
-                  ? {
-                    type: BasicMutationType.jsonCommand,
-                    payload: {
-                      op: JSONOperation.replace,
-                      path: mutation.path.replace("animation", "initial"),
-                      value: mutation.value.to
-                    }
-                  }
-                  : {
-                    type: BasicMutationType.incBy,
-                    payload: {
-                      path: mutation.path.replace("animation", "initial"),
-                      amount: mutation.value.delta!
-                    }
-                  }
-                ]
+              dispatch({
+                type: "stopAnimations",
+                payload: {
+                  paths: [mutation.path]
+                }
               })
             },
             mutation.value.duration
@@ -189,7 +167,7 @@ export function useNap({
             playerAnimationPaths.push(animatedPath)
           }
         }
-        dispatch({type: "cancelAnimations", payload: {paths: playerAnimationPaths}})
+        dispatch({type: "stopAnimations", payload: {paths: playerAnimationPaths}})
       })
     
   })

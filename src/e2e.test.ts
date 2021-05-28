@@ -1,3 +1,4 @@
+import { Intent } from './actions';
 import { JSONCommand, JSONOperation } from './business/lib/types';
 import { init } from "./client";
 import { IClient } from "./client/types";
@@ -294,7 +295,7 @@ describe("Imperatively cancel a move animation", function () {
     }, 20);
   }, 100000)
 });
-*/
+
 describe("Automatically cancel a move animation for a dead player", function () {
   let players: IClient[] = [];
   let server: IServer<any>
@@ -363,6 +364,7 @@ describe("Automatically cancel a move animation for a dead player", function () 
   }, 100000)
 });
 
+*/
 /**
  * This test a basic problem of lag compensation when mixing
  * players with hight ping difference.
@@ -381,7 +383,7 @@ describe("Automatically cancel a move animation for a dead player", function () 
  * Greedo shot Han 100ms after receiving the step.
  * The server will simply compare who was the fatest to respond to the new step.
  */
-/* 
+
 
 describe("Han moved first", function () {
   test.todo("FIX ME. When debuging and pausing before the translateright action, the shot action is enserted at step 2 then replaced by a third addPlayer.")
@@ -408,7 +410,14 @@ describe("Han moved first", function () {
     done()
   })
 
-  test("Check process", function(done) {
+  test("Check timeline", function(done) {
+    const P0Timeline: Array<Array<Intent["type"]>> = [
+      ["addPlayer"], 
+      ["addPlayer", "addPlayer"],
+      ["addPlayer", "addPlayer", "moveUp"],
+      ["addPlayer", "addPlayer", "moveUp", "translateRight"],
+      ["addPlayer", "addPlayer", "moveUp", "translateRight", "stopAnimations"]
+    ]
     const listener = function(stepId: number) {
       // timeline should be: add, add, moveup, translate, stoptranslate, shot
       console.log("PLAYER0", stepId, (players[0] as any)._state.timeTravel.timeline.map(({intent, timestamp}: any)=>({intent: intent.type, timestamp, playerId: intent.payload?.playerId})))
@@ -423,11 +432,11 @@ describe("Han moved first", function () {
         } catch(e) {
           done(e)
         } finally {
-          players[1].removeServerCallback(listener)
+          players[0].removeServerCallback(listener)
         }
       }
     }
-    players[1].addServerCallback(listener)
+    players[0].addServerCallback(listener)
 
     // Setup the scene, place players 
     players[0].dispatch({
@@ -457,7 +466,7 @@ describe("Han moved first", function () {
     }, 40)
   }, 1000000)
 });
- 
+/*  
 describe("Han shot first", function () {
   let players: IClient[] = [];
   let server: IServer<any>

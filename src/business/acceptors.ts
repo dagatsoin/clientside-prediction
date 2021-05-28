@@ -8,7 +8,7 @@ export enum MutationType {
   restore = "reset",
   setTimelineLength = "setTimelineLength",
   hitScan = "hitScan",
-  removeAnimation = "removeAnimation"
+  stopAnimation = "stopAnimation"
 }
 
 type HitScan = {
@@ -33,6 +33,14 @@ type SetTimelineLength = {
   };
 };
 
+type StopAnimation = {
+  type: MutationType.stopAnimation;
+  payload: {
+    isFinished: boolean
+    path: string
+  }
+}
+
 export type Mutation =
   | SetTimelineLength
   | Restore
@@ -40,5 +48,6 @@ export type Mutation =
   | Increment
   | Decrement
   | HitScan
+  | StopAnimation
 
 export type Mutations = Mutation[];

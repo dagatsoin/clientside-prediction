@@ -5,6 +5,7 @@ import {
   observable
 } from "mobx";
 import {
+  Animation,
   IModel,
   World,
   Proposal,
@@ -18,11 +19,14 @@ import {
   AddEntity,
   BasicMutationType,
   JSONCommand,
-  JSONOperation
+  JSONOperation,
+  Remove,
+  Replace
 } from "./lib/types";
-import { applyJSONCommand, increment } from "./lib/acceptors";
+import { applyJSONCommand, getParentAndChild, increment } from "./lib/acceptors";
 import { MutationType } from './acceptors';
-import { getCurrentPosition } from './animation';
+import { getAnimationProgress, getCurrentPosition } from './animation';
+import { didRemoveAnimation } from "../state/lib";
 
 type ISerializable<T> = { hydrate(snapshot: T): void };
 
@@ -151,9 +155,9 @@ export class Model implements IModel<World, SerializedWorld> {
           const localOrigin = mutation.payload.from
           this.data.entities.forEach((entity) => {
             const entityPosition = getCurrentPosition(
-              Date.now(),
               entity.transform.position.initial,
-              entity.transform.position.animation
+              entity.transform.position.animation,
+              Date.now()
             )
             const targetVector: Vector2D = [
               entityPosition.x - localOrigin.x,
@@ -174,6 +178,45 @@ export class Model implements IModel<World, SerializedWorld> {
               );
             }
           })
+          break;
+
+        // Remove animation data and copy the current value to the initial value
+        case MutationType.stopAnimation:
+          const animation: Animation = at(this.data, mutation.payload.path)
+          // Path does not exists.
+          if (!animation) {
+            break;
+          }
+          const initialValuePath = mutation.payload.path.replace("animation", "initial")
+          const initialValue: number = at(this.data, mutation.payload.path.replace("animation", "initial"))
+
+          // If the animation is finished, simply copy the final value
+          if (mutation.payload.isFinished) {
+            const operation: Replace = {
+              op: JSONOperation.replace,
+              path: initialValuePath,
+              value: animation.to ?? initialValue + animation.delta!
+            }
+            applyJSONCommand(this.data, operation)
+            this._patch.push(operation)
+          }
+          // Else compute the current value and store it into the new initial value
+          else {
+            const position = getAnimationProgress(initialValue, animation, new Date().getTime()).current
+            // Replace the initial value by the current value.
+            const replaceOp: Replace = {
+              op: JSONOperation.replace,
+              path: mutation.payload.path.replace("animation", "initial"),
+              value: position
+            }
+            const removeOp: Remove = {
+              op: JSONOperation.remove,
+              path: mutation.payload.path
+            }
+            applyJSONCommand(this.data, replaceOp);
+            applyJSONCommand(this.data, removeOp);
+            this._patch.push(replaceOp, removeOp)
+          }
           break;
 
         case BasicMutationType.jsonCommand:
@@ -198,8 +241,30 @@ export class Model implements IModel<World, SerializedWorld> {
           }
           break;
       }
+     // this.runInternalReactions()
     }
   };
+
+  /* // This index is used when reviewing each mutation during reaction.
+  // It will be increment each time the present function is retrigerred
+  // to avoir infinite loop (not react infinitly to the same command)
+  private reviewIndex = 0
+  private runInternalReactions() {
+    const reviewedNb = 0
+    for (let i = this.reviewIndex; i < this.patch.length; i++) {
+      const command = this.patch[i]
+      // Animation was stopped.
+      // Set the current value as the new step value.
+      if (didRemoveAnimation(command)) {
+        const value = at(this.snapshot, command.path)
+        
+      }
+    }
+  } */
+}
+
+function at(model: World, path: string): any {
+   return getParentAndChild(model, path)[1]
 }
 
 export function createModel(

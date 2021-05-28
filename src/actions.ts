@@ -112,11 +112,23 @@ const translateRight = ({
   ]
 });
 
-const cancelAnimations = ({paths}: {paths: string[]}): Proposal => ({
+const endAnimations = ({paths}: {paths: string[]}): Proposal => ({
   mutations: paths.map(path => ({
-    type: BasicMutationType.jsonCommand,
+    type: MutationType.stopAnimation,
     payload: {
-      op: JSONOperation.remove,
+      isFinished: true,
+      path
+    }
+  }))
+})
+
+const cancelAnimation = {}
+
+const stopAnimations = ({paths}: {paths: string[]}): Proposal => ({
+  mutations: paths.map(path => ({
+    type: MutationType.stopAnimation,
+    payload: {
+      isFinished: false,
       path
     }
   }))
@@ -153,7 +165,8 @@ export const actions = {
   applyPatch,
   addPlayer,
   hydrate,
-  cancelAnimations,
+  stopAnimations,
+  endAnimations,
   moveUp,
   moveRight,
   moveDown,
@@ -201,7 +214,7 @@ export type Intent =
       payload: Readonly<{ playerId: string; delta: number; duration?: number }>;
     }
   | {
-      type: "cancelAnimations";
+      type: "stopAnimations";
       payload: Readonly<{ paths: ReadonlyArray<string> }>
     }
   | {

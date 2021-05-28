@@ -1,4 +1,6 @@
+import { getAnimationProgress } from "./animation";
 import { createModel } from "./model";
+import { Animation } from "./types";
 
 const model = createModel("server", {
   entities: {
