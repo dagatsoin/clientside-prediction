@@ -1,4 +1,4 @@
-import { endAnimations, translateRight } from "../actions";
+import { cancelAnimation, endAnimations, moveUp, translateRight } from "../actions";
 import { MutationType } from "./acceptors";
 import { createModel } from "./model";
 import { IModel, SerializedWorld, World } from "./types";
@@ -89,6 +89,25 @@ describe("Mutations", function() {
     expect(model.data.entities.get("fraktar")?.transform.position.animation.x).toBeUndefined()
     expect(model.data.entities.get("fraktar")?.transform.position.initial.x).toBe(10)
   })
+
+  test("cancelAnimation", function() {
+    // Start an animation
+    model.present(translateRight({
+      playerId: "fraktar",
+      delta: 10,
+      duration: 100,
+    }))
+    // Stop it at 50%
+    model.present(cancelAnimation({
+      paths: [`/entities/fraktar/transform/position/animation/x`]
+    }))
+
+    expect(model.data.entities.get("fraktar")?.transform.position.animation.x).toBeUndefined()
+    expect(model.data.entities.get("fraktar")?.transform.position.initial.x).toBe(0)
+  })
 })
 
-test.todo("snapshot computation")
+test("snapshot computation", function() {
+  model.present(moveUp({playerId: "fraktar"}))
+  expect(model.snapshot.entities.value[0][1].transform.position.initial.y).toBe(1)
+})

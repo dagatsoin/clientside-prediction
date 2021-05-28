@@ -50,7 +50,7 @@ const hydrate = ({
   ]
 });
 
-const moveUp = ({ playerId }: { playerId: string }): Proposal => ({
+export const moveUp = ({ playerId }: { playerId: string }): Proposal => ({
   mutations: [
     {
       type: BasicMutationType.incBy,
@@ -122,7 +122,15 @@ export const endAnimations = ({paths}: {paths: string[]}): Proposal => ({
   }))
 })
 
-const cancelAnimation = {}
+export const cancelAnimation = ({paths}: {paths: string[]}): Proposal => ({
+  mutations: paths.map(path => ({
+    type: BasicMutationType.jsonCommand,
+    payload: {
+      op: JSONOperation.remove,
+      path
+    }
+  }))
+})
 
 const stopAnimations = ({paths}: {paths: string[]}): Proposal => ({
   mutations: paths.map(path => ({
