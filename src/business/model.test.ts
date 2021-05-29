@@ -1,4 +1,4 @@
-import { cancelAnimation, endAnimations, moveUp, translateRight } from "../actions";
+import { cancelAnimations, endAnimations, moveUp, translateRight } from "../actions";
 import { MutationType } from "./acceptors";
 import { createModel } from "./model";
 import { IModel, SerializedWorld, World } from "./types";
@@ -98,7 +98,7 @@ describe("Mutations", function() {
       duration: 100,
     }))
     // Stop it at 50%
-    model.present(cancelAnimation({
+    model.present(cancelAnimations({
       paths: [`/entities/fraktar/transform/position/animation/x`]
     }))
 

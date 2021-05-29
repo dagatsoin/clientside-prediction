@@ -26,8 +26,8 @@ const snapshot: SerializedWorld = {
   }
 };
 const model = createModel(playerId, snapshot);
-const state = createClientRepresentation(model, () => {}, () => {});
 const {dispatch} = createDispatcher("fraktar", model, () => state, {send: ()=>{}} as any)
+const state = createClientRepresentation(model, dispatch, () => {});
 const { player } = state;
 it("should instantaly move to left", function () {
   dispatch({

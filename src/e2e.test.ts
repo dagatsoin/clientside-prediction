@@ -39,7 +39,7 @@ async function startInfra(clientNb: number) {
   return { server, players };
 }
 
-/*  describe("API", function() {
+describe("API", function() {
   let players: IClient[] = [];
   let server: IServer<any>
   
@@ -231,7 +231,7 @@ describe("Move animation", function () {
   })
 });
 
-describe("Imperatively cancel a move animation", function () {
+describe("Imperatively stop a move animation", function () {
   let players: IClient[] = [];
   let server: IServer<any>
 
@@ -296,7 +296,7 @@ describe("Imperatively cancel a move animation", function () {
   }, 100000)
 });
 
-describe("Automatically cancel a move animation for a dead player", function () {
+describe("Automatically stop a move animation for a dead player", function () {
   let players: IClient[] = [];
   let server: IServer<any>
 
@@ -331,7 +331,9 @@ describe("Automatically cancel a move animation for a dead player", function () 
             .animation.x
           ).toBeUndefined();
           server.state.removeStepListener(serverCanceledAnimationListener)
-          expect(players[0].state.player.position.x).toBe(0)
+          // Test a range as we depend on timeout
+          expect(players[0].state.player.position.x).toBeGreaterThanOrEqual(0)
+          expect(players[0].state.player.position.x).toBeLessThanOrEqual(5)
           done()
         } catch(e) {
           done(e)
@@ -344,8 +346,7 @@ describe("Automatically cancel a move animation for a dead player", function () 
       type: "translateRight",
       payload: {
         playerId: players[0].state.playerId,
-        delta: 10,
-        duration: 5000
+        delta: 10
       }
     });
     // Kill the player
@@ -364,7 +365,7 @@ describe("Automatically cancel a move animation for a dead player", function () 
   }, 100000)
 });
 
-*/
+
 /**
  * This test a basic problem of lag compensation when mixing
  * players with hight ping difference.
@@ -384,7 +385,7 @@ describe("Automatically cancel a move animation for a dead player", function () 
  * The server will simply compare who was the fatest to respond to the new step.
  */
 
-
+/*  
 describe("Han moved first", function () {
   test.todo("FIX ME. When debuging and pausing before the translateright action, the shot action is enserted at step 2 then replaced by a third addPlayer.")
   let players: IClient[] = [];
@@ -416,7 +417,11 @@ describe("Han moved first", function () {
       ["addPlayer", "addPlayer"],
       ["addPlayer", "addPlayer", "moveUp"],
       ["addPlayer", "addPlayer", "moveUp", "translateRight"],
-      ["addPlayer", "addPlayer", "moveUp", "translateRight", "stopAnimations"]
+      ["addPlayer", "addPlayer", "moveUp", "translateRight", "endAnimations"],
+      ["addPlayer", "addPlayer", "moveUp", "translateRight", "shot", "endAnimations"],
+      ["addPlayer", "addPlayer", "moveUp", "translateRight", "shot", "endAnimations"],
+      ["addPlayer", "addPlayer", "moveUp", "translateRight", "shot", "endAnimations"],
+      ["addPlayer", "addPlayer", "moveUp", "translateRight", "shot", "endAnimations"]
     ]
     const listener = function(stepId: number) {
       // timeline should be: add, add, moveup, translate, stoptranslate, shot
@@ -466,7 +471,7 @@ describe("Han moved first", function () {
     }, 40)
   }, 1000000)
 });
-/*  
+
 describe("Han shot first", function () {
   let players: IClient[] = [];
   let server: IServer<any>

@@ -122,7 +122,7 @@ export const endAnimations = ({paths}: {paths: string[]}): Proposal => ({
   }))
 })
 
-export const cancelAnimation = ({paths}: {paths: string[]}): Proposal => ({
+export const cancelAnimations = ({paths}: {paths: string[]}): Proposal => ({
   mutations: paths.map(path => ({
     type: BasicMutationType.jsonCommand,
     payload: {
@@ -174,6 +174,7 @@ export const actions = {
   addPlayer,
   hydrate,
   stopAnimations,
+  cancelAnimations,
   endAnimations,
   moveUp,
   moveRight,
@@ -223,6 +224,10 @@ export type Intent =
     }
   | {
       type: "stopAnimations";
+      payload: Readonly<{ paths: ReadonlyArray<string> }>
+    }
+  | {
+      type: "cancelAnimations";
       payload: Readonly<{ paths: ReadonlyArray<string> }>
     }
   | {
