@@ -115,4 +115,9 @@ export interface ITimeTravel<I, T> {
    * Return a branch for a given name
    */
   getBaseBranch(): Timeline<I>
+  /**
+   * Add a step listener. The listener will be called after the commit.
+   */
+   addStepListener(listener: (stepId: number, step: Step<I>) => void): void
+   removeStepListener(listener: (stepId: number, step: Step<I>) => void): void
 }

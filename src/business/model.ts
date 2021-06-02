@@ -144,7 +144,7 @@ export class Model implements IModel<World, SerializedWorld> {
     });
   }
 
-  public present = ({ mutations, shouldReact = true }: Proposal) => {
+  public present = ({ mutations }: Proposal) => {
     this._patch = [];
     this.isMutating = true;
     for (let mutation of mutations) {
@@ -160,14 +160,16 @@ export class Model implements IModel<World, SerializedWorld> {
                 : -1
             )
           );
-          this._patch.push(
-            // Don't mess with patch
-            Object.freeze({
-              op: JSONOperation.replace,
-              path: mutation.payload.path,
-              value
-            })
-          );
+          if (value !== undefined) {
+            this._patch.push(
+              // Don't mess with patch
+              Object.freeze({
+                op: JSONOperation.replace,
+                path: mutation.payload.path,
+                value
+              })
+            );
+          }
           break;
 
         case MutationType.hitScan:
@@ -259,9 +261,7 @@ export class Model implements IModel<World, SerializedWorld> {
           else {
             applyJSONCommand(this.data, mutation.payload);
           }
-          if (shouldReact) {
-            this._patch.push(mutation.payload);
-          }
+          this._patch.push(mutation.payload);
           break;
       }
      // this.runInternalReactions()

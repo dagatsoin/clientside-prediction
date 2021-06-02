@@ -1,22 +1,23 @@
 import { createModel } from "../business/model";
 import { createDispatcher } from "./dispatcher";
 import { createClientRepresentation } from "../state/client";
-import { Dispatcher, IClient } from "./types";
+import { Dispatch, IClient } from "./types";
 import { IRepresentation } from "../state/types";
 import { stringify } from '../business/lib/JSON';
 import { getLatenceOf } from '../server/clientList';
+import { actions, Intent } from "../actions";
 
 class Client implements IClient {
   get state(): IRepresentation {
     return this._state;
   }
-  get dispatch(): Dispatcher {
+  get dispatch(): Dispatch {
     return this._dispatch;
   }
 
   private getState = () => this._state
   private _state: IRepresentation;
-  private _dispatch: Dispatcher;
+  private _dispatch: Dispatch;
   private socket: WebSocket
   
   public addServerCallback: (listener: (stepId: number) => void) => void
@@ -36,9 +37,20 @@ class Client implements IClient {
       this.getState,
       this.socket
     );
+
+    /**
+     * We also need a function to start a step only on the client.
+     * For example, when triggering a NAP
+     */
+    const startStep = (intent: Intent) => {
+      const { timeTravel } = this.getState()
+      timeTravel.startStep(intent)
+      model.present(actions[intent.type](intent.payload as any));
+    }
+
     this.addServerCallback = addServerCallback
     this.removeServerCallback = removeServerCallback
-    this._state = createClientRepresentation(model, dispatch, () => this.onConnected(this));
+    this._state = createClientRepresentation(model, startStep, () => this.onConnected(this));
 
     this.socket.onopen = () => {
       const socket = this.socket

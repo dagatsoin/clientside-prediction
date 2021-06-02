@@ -48,3 +48,7 @@ The client will execture an action.
 #### patch
 
 The client diverges from the server step. It will apply a patch to get sync.
+
+## NAP
+NAPs are fired only on the client. 
+As their execution date and params depends on the past, which is iso on client and server, we don't need to use network to sync NAP, saving few more bits of data transfert an a lot of conflict resolution code.

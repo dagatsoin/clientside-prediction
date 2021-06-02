@@ -35,13 +35,10 @@ const addPlayer = ({ playerId }: { playerId: string }): Proposal => ({
 })
 
 const hydrate = ({
-  snapshot,
-  shouldRegisterStep = true
+  snapshot
 }: {
   snapshot: SerializedWorld;
-  shouldRegisterStep?: boolean;
 }): Proposal => ({
-  shouldReact: shouldRegisterStep,
   mutations: [
     {
       type: BasicMutationType.jsonCommand,

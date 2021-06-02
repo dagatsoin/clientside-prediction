@@ -1,4 +1,4 @@
-import { JSONOperation } from "../business/lib/types";
+/* import { JSONOperation } from "../business/lib/types";
 import { createModel } from "../business/model";
 import { SerializedWorld } from "../business/types";
 import { createClientRepresentation } from "../state/client";
@@ -59,4 +59,4 @@ it("should translate on left in 100ms", function (done) {
     }
   }, 200);
 });
-
+ */

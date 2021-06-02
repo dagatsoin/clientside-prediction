@@ -1,7 +1,7 @@
 import { autorun, computed, makeObservable } from "mobx";
 import { actions, Intent } from '../actions';
 import { IModel, SerializedWorld, World } from "../business/types";
-import { Dispatcher } from '../client/types';
+import { Dispatch } from '../client/types';
 import { createTimeTravel } from "../timeTravel";
 import { ITimeTravel } from "../timeTravel/types";
 import {
@@ -35,25 +35,13 @@ class Representation implements IRepresentation {
     return this.timeTravel.getCurrentStepId();
   }
 
-  private stepListeners: Array<(stepId: number) => void> = []
-  public addClientStepListener(listener: (stepId: number) => void) {
-    this.stepListeners.push(listener)
-  }
-  
-  public removeClientStepListener(listener: (stepId: number) => void) {
-    const index = this.stepListeners.indexOf(listener)
-    if (index > -1) {
-      this.stepListeners.splice(index, 1)
-    }
-  }
-
   public getStartedAnimationPathAtStep: (stepId: number) => string[];
 
   private isReady = false
 
   constructor(
     public model: IModel<World, SerializedWorld>,
-    private dispatch: Dispatcher,
+    private startStep: Dispatch,
     onInit: ()=>void
   ) {
     this._timeTravel = createTimeTravel({ snapshot: model.snapshot, stepId: 0 }, []);
@@ -64,9 +52,8 @@ class Representation implements IRepresentation {
 
     this.getStartedAnimationPathAtStep = useNap({
       model: this.model,
-      stepListeners: this.stepListeners,
       timeTravel: this.timeTravel,
-      dispatch
+      startStep
     })
 
     autorun(() => {
@@ -87,8 +74,8 @@ class Representation implements IRepresentation {
 
 export function createClientRepresentation(
   model: IModel<World, SerializedWorld>,
-  dispatch: Dispatcher,
+  startStep: Dispatch,
   onInit: () => void
 ) {
-  return new Representation(model, dispatch, onInit);
+  return new Representation(model, startStep, onInit);
 }

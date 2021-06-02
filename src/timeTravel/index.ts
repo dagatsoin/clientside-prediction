@@ -20,6 +20,7 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
   }, private timeline: Timeline<I>){
     this.stepTimer = this.initialState.timestamp
   }
+  private stepListeners: Array<(stepId: number, step: Step<I>) => void> = []
 
   getTimeline() {
     return [...this.timeline]
@@ -41,8 +42,12 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
     if (!this.pendingTransaction) {
       return
     }
-    this.push({intent: {...this.pendingTransaction.intent}, timestamp: this.pendingTransaction.timestamp, patch})
+    const step = {intent: {...this.pendingTransaction.intent}, timestamp: this.pendingTransaction.timestamp, patch}
+    this.push(step)
     this.pendingTransaction = undefined
+    for (let listener of this.stepListeners) {
+      listener(this.getCurrentStepId(), step)
+    }
   }
   
   private pendingTransaction: {intent: I, timestamp: number } | undefined
@@ -192,6 +197,18 @@ class TimeTravel<I, S> implements ITimeTravel<I, S> {
     }
     this.timeline.splice(0, deleteCount);
   }
+
+  public addStepListener(listener: (stepId: number, step: Step<I>) => void) {
+    this.stepListeners.push(listener)
+  }
+  
+  public removeStepListener(listener: (stepId: number, step: Step<I>) => void) {
+    const index = this.stepListeners.indexOf(listener)
+    if (index > -1) {
+      this.stepListeners.splice(index, 1)
+    }
+  }
+
 }
 
 export function createTimeTravel<I, S>(

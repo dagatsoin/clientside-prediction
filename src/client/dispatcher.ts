@@ -1,9 +1,10 @@
 import { actions, Intent } from "../actions";
 import { IModel } from "../business/types";
-import { Dispatcher } from "./types";
+import { Dispatch } from "./types";
 import { IRepresentation } from "../state/types";
 import { stringify } from '../business/lib/JSON';
 import { ServerMessage } from '../type';
+import { didStartAnimation } from "../state/lib";
 
 /**
  * Send the same intent to the server
@@ -19,7 +20,7 @@ export function createDispatcher(
   socket: WebSocket
 ): {
   onMessage(message: MessageEvent<string>): void;
-  dispatch: Dispatcher;
+  dispatch: Dispatch;
   addServerCallback(listener: (stepId: number) => void): void;
   removeServerCallback(listener: (stepId: number) => void): void;
 } {
@@ -28,8 +29,7 @@ export function createDispatcher(
     onMessage(messageEvent: MessageEvent<string>) {
       // Use native parser to keep the serialized map
       const message: ServerMessage = JSON.parse(messageEvent.data)
-      const { stepId, timeTravel } = getState();
-      const currentStepId = stepId
+      const { timeTravel } = getState();
       /**
        * The server sent a sync command.
        * We reduce the timeline to the server stepId.
@@ -58,6 +58,9 @@ export function createDispatcher(
        * Sync the client by perfoming the given action.
        */ 
       else if (message.type === "intent") {
+        if (model.id === "Player0") {
+          console.log(message.type, message.data.type)
+        }
         timeTravel.startStep(message.data)
         model.present(actions[message.data.type](message.data.payload as any))
       }
@@ -66,6 +69,15 @@ export function createDispatcher(
        * by doing a travel in the past and the apply of a new timeline.
        */
       else if (message.type === "splice") {
+        if (model.id === "Player0") {
+          console.log(
+            message.type,
+            message.data.to,
+            message.data.timeline.map(({intent}) => intent.type),
+            timeTravel.getTimeline().map(({intent}) => intent.type)
+          )
+        }
+        
         // Merge the server timeline in the local timeline.
         // Not that splice index and forkPast index are different.
         // Splice index indicates the first step you can modify.
@@ -75,16 +87,23 @@ export function createDispatcher(
         })
         // Rollback the model to the step before the splice target.
         // If the splice targets step 2, rollback to 1.
-        model.present(actions.hydrate({snapshot: timeTravel.at(message.data.to - 1), shouldRegisterStep: false }))
+        model.present(actions.hydrate({snapshot: timeTravel.at(message.data.to - 1) }))
         // Replay the new section of the timeline by applying patch
         const patch = timeTravel.getPatchFromTo(message.data.to, timeTravel.getCurrentStepId())
         model.present(actions.applyPatch({commands: patch}))
+        if (model.id === "Player0") {
+          console.log(
+            "after splice",
+            timeTravel.getTimeline().map(({intent}) => intent.type)
+          )
+        }
       }
       /**
        * All the nodes have consencus on the past. Reduce the common step
        * as a snapshot.
        * That means there won't be ever any past modification before this step.
        */
+      
       else if (message.type === "reduce") {
         timeTravel.reduce(message.data.to)
       }

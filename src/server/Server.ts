@@ -14,10 +14,10 @@ import { createServerRepresentation } from "../state/server";
 import { IServerRepresentation } from "../state/types";
 import { ClientMessage, ServerMessage } from '../type';
 import { getClients, addClient, forAllClients, getLatenceOf, deleteClient } from './clientList';
-import { Dispatcher } from '../client/types';
+import { Dispatch } from '../client/types';
 
 export interface IServer<T> {
-  dispatch: Dispatcher
+  dispatch: Dispatch
   state: IServerRepresentation
   close(cb?: ()=>void): void
 }
@@ -101,6 +101,9 @@ class Server implements IServer<World> {
     }
     else if (message.type === "intent") {
       const input = message.data
+      if (this.model.id === "Player0") {
+        console.log(message.type, input.type)
+      }
       /**
        * The incoming intent is for a previous step.
        * The server need to modify the past.
@@ -116,13 +119,11 @@ class Server implements IServer<World> {
           if (timestampOfA < timestampOfB) {
 
             // Roll back the model to the fork point
-            this.dispatch({
-              type: "hydrate",
-              payload: {
-                snapshot: this.state.timeTravel.at(message.data.stepId),
-                shouldRegisterStep: false
-              }
-            })
+            this.model.present(
+              actions.hydrate({
+                snapshot: this.state.timeTravel.at(message.data.stepId)
+              })
+            )
 
             this.state.timeTravel.forkPast(message.data.stepId, (oldTimeline) => {
 
@@ -161,13 +162,11 @@ class Server implements IServer<World> {
             + this.state.timeTravel.getInitialStep() // Rebase on step number
 
             // Roll back the model to the fork point
-            this.dispatch({
-              type: "hydrate",
-              payload: {
-                snapshot: this.state.timeTravel.at(index),
-                shouldRegisterStep: false
-              }
-            })
+            this.model.present(
+              actions.hydrate({
+                snapshot: this.state.timeTravel.at(index)
+              })
+            )
 
             this.state.timeTravel.forkPast(index, (oldTimeline) => {
 
@@ -205,7 +204,7 @@ class Server implements IServer<World> {
         // Trigger the client action
         this.dispatchAt({type: input.type, payload: input.payload} as Intent, message.data.stepId, input.timestamp)
         if (this.model.patch.length) {
-          console.info(`New server step ${this.state.timeTravel.getCurrentStepId()}`, this.state.timeTravel.slice(this.state.timeTravel.getInitialStep(), this.state.timeTravel.getCurrentStepId()))
+          //console.info(`New server step ${this.state.timeTravel.getCurrentStepId()}`, this.state.timeTravel.slice(this.state.timeTravel.getInitialStep(), this.state.timeTravel.getCurrentStepId()))
           forAllClients((client, id) => {   
             if (id !== input.clientId) {
               client.send(stringify({

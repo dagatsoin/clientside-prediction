@@ -2,7 +2,7 @@ import { makeObservable, computed } from 'mobx';
 import { Intent } from '../actions';
 import { JSONCommand } from '../business/lib/types';
 import { IModel, SerializedWorld, World } from '../business/types';
-import { Dispatcher } from '../client/types';
+import { Dispatch } from '../client/types';
 import { createTimeTravel } from '../timeTravel';
 import { ITimeTravel } from '../timeTravel/types';
 import { updatePlayersRepresentation, useNap } from './lib';
@@ -25,7 +25,7 @@ class Representation implements IServerRepresentation {
 
   constructor(
     public model: IModel<World, SerializedWorld>,
-    private dispatch: Dispatcher
+    private startStep: Dispatch
   ) {
     this.timeTravel = createTimeTravel({snapshot: model.snapshot, stepId: 0}, []);
     makeObservable<this, "players">(this, {
@@ -34,9 +34,8 @@ class Representation implements IServerRepresentation {
     });
     this.getStartedAnimationPathAtStep = useNap({
       model,
-      stepListeners: this.stepListeners,
       timeTravel: this.timeTravel,
-      dispatch
+      startStep
     })
   }
   
@@ -60,7 +59,7 @@ class Representation implements IServerRepresentation {
 
 export function createServerRepresentation(
   model: IModel<World, SerializedWorld>,
-  dispatch: Dispatcher
+  startStep: Dispatch
 ): IServerRepresentation {
-  return new Representation(model, dispatch)
+  return new Representation(model, startStep)
 }

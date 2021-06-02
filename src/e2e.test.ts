@@ -38,7 +38,7 @@ async function startInfra(clientNb: number) {
 
   return { server, players };
 }
-
+/*
 describe("API", function() {
   let players: IClient[] = [];
   let server: IServer<any>
@@ -364,7 +364,67 @@ describe("Automatically stop a move animation for a dead player", function () {
     }, 20);
   }, 100000)
 });
+*/
 
+describe("lifecycle", function() {
+  let players: IClient[] = [];
+  let server: IServer<any>
+  
+  beforeAll(async () => {
+    const nbPlayers = 2
+    const infra = (await startInfra(nbPlayers));
+    setLatence("Player0", 300)
+    setLatence("Player1", 30)
+    server = infra.server
+    players = infra.players
+    // Wait for the game to be populated
+    return isGameReady(players, nbPlayers)
+  }, 1000000);
+
+  afterAll(function() {
+    server.close()
+  })
+  test("", function(done) {
+    const r: any[] = []
+    const listener = function(stepId: number) {
+      r.push((players[0] as any)
+        ._state
+        .timeTravel
+        .timeline
+        .map(({intent}: any)=> intent.type))
+        console.log(stepId, r)
+      if (stepId === 5) {
+        try {
+          expect(r).toEqual([
+            [ 'addPlayer', 'addPlayer', 'moveUp' ],
+            [ 'addPlayer', 'addPlayer', 'moveUp', 'translateRight' ],
+            [ 'addPlayer', 'addPlayer', 'moveUp', 'translateRight', "endAnimations" ]
+          ])
+          done()
+        } catch (e) {
+          done(e)
+        }
+      }
+    }
+    players[0].state.timeTravel.addStepListener(listener)
+
+    // Setup the scene, place players 
+    players[0].dispatch({
+      type: "moveUp",
+      payload: {
+        playerId: players[0].state.playerId,
+      }
+    });
+    // Player 0 moves first
+    players[0].dispatch({
+      type: "translateRight",
+      payload: {
+        playerId: players[0].state.playerId,
+        delta: 10
+      }
+    });
+  })
+})
 
 /**
  * This test a basic problem of lag compensation when mixing
@@ -385,7 +445,7 @@ describe("Automatically stop a move animation for a dead player", function () {
  * The server will simply compare who was the fatest to respond to the new step.
  */
 
-/*  
+ /*
 describe("Han moved first", function () {
   test.todo("FIX ME. When debuging and pausing before the translateright action, the shot action is enserted at step 2 then replaced by a third addPlayer.")
   let players: IClient[] = [];
@@ -423,10 +483,17 @@ describe("Han moved first", function () {
       ["addPlayer", "addPlayer", "moveUp", "translateRight", "shot", "endAnimations"],
       ["addPlayer", "addPlayer", "moveUp", "translateRight", "shot", "endAnimations"]
     ]
+    const r: any[] = []
     const listener = function(stepId: number) {
       // timeline should be: add, add, moveup, translate, stoptranslate, shot
-      console.log("PLAYER0", stepId, (players[0] as any)._state.timeTravel.timeline.map(({intent, timestamp}: any)=>({intent: intent.type, timestamp, playerId: intent.payload?.playerId})))
-      console.log("PLAYER1", stepId, (players[0] as any)._state.timeTravel.timeline.map(({intent, timestamp}: any)=>({intent: intent.type, timestamp, playerId: intent.payload?.playerId})))
+      //console.log("PLAYER0", stepId, (players[0] as any)._state.timeTravel.timeline.map(({intent, timestamp}: any)=>({intent: intent.type, timestamp, playerId: intent.payload?.playerId})))
+      //console.log("PLAYER1", stepId, (players[0] as any)._state.timeTravel.timeline.map(({intent, timestamp}: any)=>({intent: intent.type, timestamp, playerId: intent.payload?.playerId})))
+      r.push((players[0] as any)
+        ._state
+        .timeTravel
+        .timeline
+        .map(({intent}: any)=> intent.type))
+      console.log(stepId,r)
       if (stepId === 6) {
         try {
           expect(players[0].state.stepId).toBe(6)
@@ -471,7 +538,7 @@ describe("Han moved first", function () {
     }, 40)
   }, 1000000)
 });
-
+/*
 describe("Han shot first", function () {
   let players: IClient[] = [];
   let server: IServer<any>

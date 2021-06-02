@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from "react"
 import { Position } from '../../business/types'
-import { Dispatcher } from '../../client/types'
+import { Dispatch } from '../../client/types'
 import { IPlayer } from '../../state/types'
 import { useKeyboard } from '../business/useKeyboard'
 
 type Props = React.PropsWithChildren<{
   player: IPlayer
   arrow?: boolean
-  dispatch: Dispatcher
+  dispatch: Dispatch
 }>
 
 type Direction = "top" | "right" | "bottom" | "left";

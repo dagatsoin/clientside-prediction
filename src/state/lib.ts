@@ -3,6 +3,7 @@ import { createTransformer } from 'mobx-utils';
 import { Intent } from '../actions';
 import { Mutation } from "../business/acceptors";
 import { getCurrentPosition } from '../business/animation';
+import { at } from '../business/lib/acceptors';
 import {
   ApplyCommand,
   BasicMutationType,
@@ -12,7 +13,7 @@ import {
   Replace
 } from "../business/lib/types";
 import { Animation, IEntity, IModel, Position, SerializedWorld, World } from "../business/types";
-import { Dispatcher } from '../client/types';
+import { Dispatch } from '../client/types';
 import { ITimeTravel } from '../timeTravel/types';
 import { IPlayer } from './types';
 
@@ -46,6 +47,12 @@ export function isDead(
   command: JSONCommand
 ): boolean {
   return command.op === JSONOperation.replace && command.path.endsWith("isAlive")
+}
+
+export function isHydrated(
+  command: JSONCommand
+): boolean {
+  return command.op === JSONOperation.replace && command.path === "/"
 }
 
 
@@ -95,12 +102,14 @@ export function updatePlayersRepresentation(
 }
 
 export function useNap({
-  model, timeTravel, stepListeners, dispatch
+  model, timeTravel, startStep
 }: {
   model: IModel<World, SerializedWorld>,
   timeTravel: ITimeTravel<Intent, SerializedWorld>,
-  stepListeners: Array<(stepId: number) => void>,
-  dispatch: Dispatcher
+  /**
+   * Start a step without dispatching to the network
+   */
+  startStep: Dispatch
 }): (stepId: number) => string[] {
   /**
    * A list of running animations property paths maintened by
@@ -118,9 +127,6 @@ export function useNap({
   autorun(() => {
     if (model.patch.length) {
       timeTravel.commitStep(model.patch);
-      for (let listener of stepListeners) {
-        listener(timeTravel.getCurrentStepId())
-      }
     }
   });
 
@@ -129,14 +135,16 @@ export function useNap({
     model.patch.filter(didStartAnimation).forEach((mutation) => {
       // An animations started
       // Store the animated path
-
+      if (model.id === "Player0") {
+        console.log(mutation)
+      }
       animations.set(
         mutation.path,
         {
           stepId: timeTravel.getCurrentStepId(),
           timer: setTimeout(
             function() {
-              dispatch({
+              startStep({
                 type: "endAnimations",
                 payload: {
                   paths: [mutation.path]
@@ -150,8 +158,7 @@ export function useNap({
     });
 
     model.patch.filter(didRemoveAnimation).forEach((mutation) => {
-      clearTimeout(animations.get(mutation.path)?.timer)
-      animations.delete(mutation.path)
+      cancelAnimation(mutation.path)
     })
   });
 
@@ -167,15 +174,32 @@ export function useNap({
             playerAnimationPaths.push(animatedPath)
           }
         }
-        dispatch({type: "stopAnimations", payload: {paths: playerAnimationPaths}})
+        startStep({type: "stopAnimations", payload: {paths: playerAnimationPaths}})
       })
     
   })
+
+  // Model has been hydrated, reset animations
+  autorun(() => {
+    if(model.patch.some(isHydrated)) {
+      animations.forEach(function(_, path) {
+        if (at(model, path) === undefined) {
+          cancelAnimation(path)
+        }
+      })
+    }
+  })
   
+  function cancelAnimation(path: string) {
+    clearTimeout(animations.get(path)?.timer)
+    animations.delete(path)
+  }
+
   return function getPathsFromStep(id: number): string[] {
     return Array.from(animations).filter(([_, {stepId}]) => stepId === id).map(([path]) => path)
   }
 }
+
 
 export function getEntityIdFromCommandPath(path: string) {
   return path.split('/')[2]
