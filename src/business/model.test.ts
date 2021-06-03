@@ -1,4 +1,4 @@
-/* import { cancelAnimations, endAnimations, moveUp, translateRight } from "../actions";
+import { cancelAnimations, endAnimations, moveUp, translateRight } from "../actions";
 import { MutationType } from "./acceptors";
 import { createModel } from "./model";
 import { IModel, SerializedWorld, World } from "./types";
@@ -110,4 +110,4 @@ describe("Mutations", function() {
 test("snapshot computation", function() {
   model.present(moveUp({playerId: "fraktar"}))
   expect(model.snapshot.entities.value[0][1].transform.position.initial.y).toBe(1)
-}) */
+})

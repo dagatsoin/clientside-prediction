@@ -9,7 +9,7 @@
     "start-server": "nodemon dist/server/index.js --watch dist/server",
     "build-client": "parcel build index.html --out-dir dist/client",
     "build-server": "tsc -p tsconfig.server.json",
-    "test": "jest src/business/animation.test.ts --detectOpenHandles --testTimeout=1000000"
+    "test": "jest --detectOpenHandles --testTimeout=1000000"
   },
   "dependencies": {
     "@types/react": "17.0.3",

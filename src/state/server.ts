@@ -10,17 +10,6 @@ import { IPlayer, IServerRepresentation } from './types';
 
 class Representation implements IServerRepresentation {
   public timeTravel: ITimeTravel<Intent & { triggeredAtStepId: number}, SerializedWorld>;
-  public stepListeners: Array<(stepId: number) => void> = []
-  public addStepListener(listener: (stepId: number) => void) {
-    this.stepListeners.push(listener)
-  }
-
-  public removeStepListener(listener: (stepId: number) => void) {
-    const index = this.stepListeners.indexOf(listener)
-    if (index > -1) {
-      this.stepListeners.splice(index, 1)
-    }
-  }
   public getStartedAnimationPathAtStep: (stepId: number) => string[];
 
   constructor(

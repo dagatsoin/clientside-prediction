@@ -38,7 +38,7 @@ async function startInfra(clientNb: number) {
 
   return { server, players };
 }
-/*
+
 describe("API", function() {
   let players: IClient[] = [];
   let server: IServer<any>
@@ -131,13 +131,13 @@ describe("Move animation", function () {
               .position
               .animation.x
           ).toBeDefined();
-          players[0].state.removeClientStepListener(clientStartedAnimationListener)
+          players[0].state.timeTravel.removeStepListener(clientStartedAnimationListener)
         } catch(e) {
           done(e)
         }
       }
     }
-    players[0].state.addClientStepListener(clientStartedAnimationListener)
+    players[0].state.timeTravel.addStepListener(clientStartedAnimationListener)
     
      // Server received the start animation intent
     const serverStartedAnimationListener = function(stepId: number){
@@ -152,13 +152,13 @@ describe("Move animation", function () {
               .position
               .animation.x
             ).toBeDefined();
-            server.state.removeStepListener(serverStartedAnimationListener)
+            server.state.timeTravel.removeStepListener(serverStartedAnimationListener)
           } catch(e) {
             done(e)
           }
       }
     }
-    server.state.addStepListener(serverStartedAnimationListener)
+    server.state.timeTravel.addStepListener(serverStartedAnimationListener)
 
     // Local player has finished animation
     const clientFinishedAnimationListener = function(stepId: number) {
@@ -182,13 +182,13 @@ describe("Move animation", function () {
               .position
               .initial.x
           ).toBe(10)
-          players[0].state.removeClientStepListener(clientFinishedAnimationListener)
+          players[0].state.timeTravel.removeStepListener(clientFinishedAnimationListener)
         } catch(e) {
           done(e)
         }
       }
     }
-    players[0].state.addClientStepListener(clientFinishedAnimationListener)
+    players[0].state.timeTravel.addStepListener(clientFinishedAnimationListener)
 
     // Server has finished animation
     const serverFinishedAnimationListener = function(stepId: number) {
@@ -212,14 +212,14 @@ describe("Move animation", function () {
               .position
               .initial.x
           ).toBe(10)
-          server.state.removeStepListener(serverFinishedAnimationListener)
+          server.state.timeTravel.removeStepListener(serverFinishedAnimationListener)
           done()
         } catch (e) {
           done(e)
         }
       }
     }
-    server.state.addStepListener(serverFinishedAnimationListener)
+    server.state.timeTravel.addStepListener(serverFinishedAnimationListener)
  
     players[0].dispatch({
       type: "translateRight",
@@ -265,14 +265,14 @@ describe("Imperatively stop a move animation", function () {
             .position
             .animation.x
           ).toBeUndefined();
-          server.state.removeStepListener(serverCanceledAnimationListener)
+          server.state.timeTravel.removeStepListener(serverCanceledAnimationListener)
           done()
         } catch(e) {
           done(e)
         }
       }
     }
-    server.state.addStepListener(serverCanceledAnimationListener)
+    server.state.timeTravel.addStepListener(serverCanceledAnimationListener)
 
     const animationStep = players[0].state.stepId + 1
 
@@ -330,7 +330,7 @@ describe("Automatically stop a move animation for a dead player", function () {
             .position
             .animation.x
           ).toBeUndefined();
-          server.state.removeStepListener(serverCanceledAnimationListener)
+          server.state.timeTravel.removeStepListener(serverCanceledAnimationListener)
           // Test a range as we depend on timeout
           expect(players[0].state.player.position.x).toBeGreaterThanOrEqual(0)
           expect(players[0].state.player.position.x).toBeLessThanOrEqual(5)
@@ -340,7 +340,7 @@ describe("Automatically stop a move animation for a dead player", function () {
         }
       }
     }
-    server.state.addStepListener(serverCanceledAnimationListener)
+    server.state.timeTravel.addStepListener(serverCanceledAnimationListener)
 
     players[0].dispatch({
       type: "translateRight",
@@ -364,7 +364,6 @@ describe("Automatically stop a move animation for a dead player", function () {
     }, 20);
   }, 100000)
 });
-*/
 
 describe("lifecycle", function() {
   let players: IClient[] = [];

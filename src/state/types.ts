@@ -18,7 +18,6 @@ export interface IServerRepresentation {
   readonly players: IPlayer[];
   readonly patch: ReadonlyArray<JSONCommand>;
   readonly timeTravel: ITimeTravel<Intent & {triggeredAtStepId: number}, SerializedWorld>;
-  getStartedAnimationPathAtStep: (stepId: number) => string[];
 }
 
 export interface IPlayer {
